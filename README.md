@@ -17,14 +17,19 @@ You can set org and permission sets as default and when you open the page these 
 
 ## Features
 
-- [x] List all authenticated orgs from salesforce cli
-- [x] Select permission set from a list
-- [x] Add Object API and Field API as text fields
-- [x] Select fields from a object
-- [x] Create/Update permission set fields
-- [x] Set org as default for next use
-- [x] Set permission set as default for next use
+- List all authenticated orgs from salesforce cli
+- Select permission set from a list
+- Add Object API and Field API as text fields
+- Select fields from a object
+- Create/Update permission set fields
+- Set org as default for next use
+- Set permission set as default for next use
 
+## How to use it
+
+Open Command Pallet and use this command:
+
+`SFP: Open - Salesforce Field Permission`
 
 ## Basic usage
 
