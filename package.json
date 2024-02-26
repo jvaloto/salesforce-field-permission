@@ -6,6 +6,10 @@
   "engines": {
     "vscode": "^1.86.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:jvaloto/salesforce-field-permission.git" 
+  },
   "categories": [
     "Other"
   ],
@@ -22,14 +26,14 @@
     "configuration": {
       "title": "Salesforce Field Permission",
       "properties": {
-          "sfp.defaultOrg": {
-              "type": "string",
-              "description": "Use this default org for next use"
-          },
-          "sfp.defaultPermissionSet": {
-              "type": "string",
-              "description": "Use these permission sets for next use"
-          }
+        "sfp.defaultOrg": {
+          "type": "string",
+          "description": "Use this default org for next use"
+        },
+        "sfp.defaultPermissionSet": {
+          "type": "string",
+          "description": "Use these permission sets for next use"
+        }
       }
     }
   },
@@ -42,6 +46,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@salesforce/cli": "^2.29.5",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
     "@types/vscode": "^1.86.0",
@@ -50,10 +55,7 @@
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.9",
     "eslint": "^8.56.0",
+    "jsforce": "^1.11.1",
     "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "@salesforce/cli": "^2.27.6",
-    "jsforce": "^1.11.1"
   }
 }

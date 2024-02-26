@@ -28,19 +28,19 @@ You can set org and permission sets as default and when you open the page these 
 
 ## Basic usage
 
-![](media/readme/example_basic.gif)
+![example_basic.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_basic.gif?raw=true)
 
 ## Selecting fields from an object
 
-![](media/readme/example_object.gif)
+![example_object.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_object.gif?raw=true)
 
 ## Setting org and permission sets as default
 
-![](media/readme/example_default_value.gif)
+![example_default_value.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_default_value.gif?raw=true)
 
 ## Release Notes
 
-You can view all changes from [CHANGELOG](./CHANGELOG.md) file
+You can view all changes from [CHANGELOG](https://github.com/jvaloto/salesforce-field-permission/blob/main/CHANGELOG.md) file
 
 ## Author
 
