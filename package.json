@@ -1,0 +1,59 @@
+{
+  "name": "sfp",
+  "displayName": "Salesforce Field Permission",
+  "description": "Extension to set field permission in permission sets",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.86.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "media/icon/extension_icon.png",
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sfp.open",
+        "title": "SFP: Open - Salesforce Field Permission"
+      }
+    ],
+    "configuration": {
+      "title": "Salesforce Field Permission",
+      "properties": {
+          "sfp.defaultOrg": {
+              "type": "string",
+              "description": "Use this default org for next use"
+          },
+          "sfp.defaultPermissionSet": {
+              "type": "string",
+              "description": "Use these permission sets for next use"
+          }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.86.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@salesforce/cli": "^2.27.6",
+    "jsforce": "^1.11.1"
+  }
+}

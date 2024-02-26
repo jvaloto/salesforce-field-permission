@@ -1,0 +1,90 @@
+html {
+	box-sizing: border-box;
+	font-size: 13px;
+}
+
+*,
+*:before,
+*:after {
+	box-sizing: inherit;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul {
+	margin: 0;
+	padding: 0;
+	font-weight: normal;
+}
+
+img {
+	max-width: 100%;
+	height: auto;
+}
+
+body{
+	color: #000 !important;
+	padding: 10px;
+}
+
+.slds-card{
+	margin-top: 10px;
+}
+
+.sfp-table{
+    border: 1px solid #e5e5e5;
+    overflow: scroll;
+    display: block;
+}
+
+.sfp-table hr{
+    padding: 0px;
+	margin: 5px;
+}
+
+.sfp-table th.view-edit-1, .sfp-table td.view-edit-1{
+	background-color: #F5F5F5;
+}
+
+.sfp-table th.view-edit-2, .sfp-table td.view-edit-2{
+	background-color: #EAEAEA;
+}
+
+.sfp-table .th-label{
+    background-color: #fff;
+}
+  
+.sfp-table .text-center, .slds-card .center{
+	text-align: center;
+}
+
+.sfp-table th, .sfp-table td{
+	width: 5%;
+}
+
+.sfp-table .center{
+	text-align: center !important;
+	vertical-align: middle !important;
+}
+
+.icon-remove{
+	background-color: #a1a1a1;
+	border-radius: 5px;
+	border: none;
+	color: #fff;
+	cursor: pointer;
+	font-weight: normal;
+	margin-right: 2px;
+}
+
+.icon-remove:hover{
+	cursor: pointer;
+	background-color: red;
+}
