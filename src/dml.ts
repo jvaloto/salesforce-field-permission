@@ -1,4 +1,3 @@
-// @ts-ignore
 import jsforce from 'jsforce';
 
 export async function create(connection: jsforce.Connection, object: string, records: Array<any>){

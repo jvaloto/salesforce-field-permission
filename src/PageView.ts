@@ -2,8 +2,6 @@ import * as vscode from 'vscode';
 import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
 import { create, update } from './dml';
-
-// @ts-ignore
 import jsforce from 'jsforce';
 import { getFields, getObjects } from './object';
 
