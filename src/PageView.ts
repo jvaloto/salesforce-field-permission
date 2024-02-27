@@ -196,6 +196,10 @@ export class PageView{
 						this.setDefaultPermissionSets(message.text);
 
 						return;
+					case 'WHERE-IS-PERMISSION':
+						this.whereIsPermission();
+
+						return;
 				}
 			},
 			null,
@@ -293,6 +297,7 @@ export class PageView{
 				, Name 
 			FROM PermissionSet 
 			WHERE IsCustom = true 
+				AND ( NOT Name LIKE 'X00e%' )
 			ORDER BY Label ASC
 		`)
 		.then(resultPermissions =>{
@@ -437,8 +442,10 @@ export class PageView{
 				, PermissionsRead
 				, SobjectType
 			FROM FieldPermissions 
-			WHERE ParentId IN ('${permissions.join("','")}') 
+			WHERE Parent.IsCustom = true
+				AND ParentId IN ('${permissions.join("','")}') 
 				AND Field IN ('${fields.join("','")}')
+				AND ( NOT Parent.Name LIKE 'X00e%' )
 		`)
 		.then(resultFields =>{
 			resultFields.records.forEach((fieldPermission: any) =>{
@@ -556,7 +563,8 @@ export class PageView{
 
 			this.selectedPermissions.push(permissionRecord);
 			
-			this.permissionsToSelect = this.permissionsToSelect.filter((e) => e.api !== permission);
+			this.permissionsToSelect = 
+				this.permissionsToSelect.filter((e) => e.api !== permission);
 
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
@@ -590,6 +598,75 @@ export class PageView{
 		this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
 		this._update();
+	}
+
+	private whereIsPermission(){
+		this.createMessage(false);
+
+		this.values = new Map();
+		let listPermissionsToFilter = new Array();
+		this.selectedPermissions = new Array();
+		this.permissionsToSelect = new Array();
+		this.permissionsToSelect = [...this.permissionsBase];
+
+		query(this.connection, `
+			SELECT Id
+				, Field
+				, Parent.Label
+				, Parent.Name
+				, ParentId
+				, PermissionsEdit 
+				, PermissionsRead
+				, SobjectType
+			FROM FieldPermissions 
+			WHERE Parent.IsCustom = true
+				AND Field IN ('${this.selectedFields.join("','")}')
+				AND ( NOT Parent.Name LIKE 'X00e%' )
+		`)
+		.then(resultFields =>{
+			resultFields.records.forEach((fieldPermission: any) =>{
+				if(!listPermissionsToFilter.includes(fieldPermission.Parent.Name)){
+					listPermissionsToFilter.push(fieldPermission.ParentId);
+				}
+
+				this.values.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
+					id: fieldPermission.Id, 
+					permission: fieldPermission.Parent.Name,
+					permissionId: fieldPermission.ParentId,
+					field: fieldPermission.Field, 
+					read: fieldPermission.PermissionsRead, 
+					edit: fieldPermission.PermissionsEdit
+				});
+			});
+
+			this.selectedPermissions = 
+				this.permissionsBase.filter((e) => listPermissionsToFilter.includes(e.id));
+
+			this.permissionsToSelect = 
+				this.permissionsToSelect.filter((e) => !listPermissionsToFilter.includes(e.id));
+
+			this.selectedFields.forEach(field =>{
+				this.selectedPermissions.forEach(permission =>{
+					let keyValue = permission.api +'.'+ field;
+
+					if(!this.values.has(keyValue)){
+						this.values.set(keyValue, {
+							id: null, 
+							permission: permission.api, 
+							permissionId: permission.id,
+							field: field, 
+							read: false, 
+							edit: false
+						});
+					}
+				});
+			});
+
+			this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
+			this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
+
+			this._update();
+		});
 	}
 
 	private async createRecords(records: Array<any>): Promise<any>{
@@ -734,6 +811,15 @@ export class PageView{
 		let toReturn = `
 		<article class="slds-card">
 			<div class="slds-card__body slds-card__body_inner">
+				<div class="slds-no-flex">
+					<button 
+						id="button-where-permission" 
+						class="slds-button slds-button_brand"
+					>
+						Where's the permission?
+					</button>
+				</div>
+		
 				<table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
 					<thead>
 						<tr>
