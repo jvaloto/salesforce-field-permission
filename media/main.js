@@ -180,11 +180,15 @@
   });
 
   document.querySelector('#input-checkbox-object-field-all')?.addEventListener('click', () =>{
-    let listFields = new Array();
-
     document.querySelectorAll(".input-checkbox-object-field").forEach(item =>{
       // @ts-ignore
       item.checked = document.querySelector('#input-checkbox-object-field-all').checked;
+    });
+  });
+
+  document.querySelector('#button-where-permission')?.addEventListener('click', () =>{
+    vscode.postMessage({
+      command: 'WHERE-IS-PERMISSION'
     });
   });
 
