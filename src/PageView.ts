@@ -4,6 +4,7 @@ import { getConnection, getOrgs } from './connection';
 import { create, update } from './dml';
 import jsforce from 'jsforce';
 import { getFields, getObjects } from './object';
+import { html } from './html';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -22,26 +23,26 @@ export class PageView{
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
-	private permissionsToSelect: Array<any>;
-	private selectedPermissions: Array<any>;
-	private selectedFields: Array<any>;
-	private values: Map<any, any>;
-	private listOrgs: Array<string>;
-	private isConnected: boolean;
-	private org: string;
-	private checkedDefaultOrg: boolean;
-	private checkedDefaultPermissionSet: boolean;
-	private selectedObject: string;
-	private selectedField: string;
-	private isLoading: boolean;
-	private loadingText: string;
-	private pageMessageIsActive: boolean;
-	private pageMessageType: string;
-	private pageMessageText: Array<string>;
-	private showModal: boolean;
-	private listObject: Array<any>;
-	private objectToDescribe: string;
-	private listFieldObject: Array<any>;
+	public permissionsToSelect: Array<any>;
+	public selectedPermissions: Array<any>;
+	public selectedFields: Array<any>;
+	public values: Map<any, any>;
+	public listOrgs: Array<string>;
+	public isConnected: boolean;
+	public org: string;
+	public checkedDefaultOrg: boolean;
+	public checkedDefaultPermissionSet: boolean;
+	public selectedObject: string;
+	public selectedField: string;
+	public isLoading: boolean;
+	public loadingText: string;
+	public pageMessageIsActive: boolean;
+	public pageMessageType: string;
+	public pageMessageText: Array<string>;
+	public showModal: boolean;
+	public listObject: Array<any>;
+	public objectToDescribe: string;
+	public listFieldObject: Array<any>;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -822,416 +823,6 @@ export class PageView{
 		});
 	}
 
-	private createHtmlTable(){
-		let toReturn = `
-		<article class="slds-card">
-			<div class="slds-card__body slds-card__body_inner">
-				<div class="slds-no-flex">
-					<button 
-						id="button-where-permission" 
-						class="slds-button slds-button_brand"
-					>
-						Where's the permission?
-					</button>
-				</div>
-		
-				<table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
-					<thead>
-						<tr>
-							<th class="text-center th-label" scope="col">
-								</p>Permission Set 
-							</th>
-		`;
-
-		let numberColor = 1;
-
-		this.selectedPermissions.forEach(permission =>{
-			toReturn += `
-				<th colspan="2" class="text-center view-edit-${numberColor}" scope="col">
-					${permission.label}
-					<br/>
-					(${permission.api})
-					<br/>
-					<button
-						type="button" 
-						class="icon-remove button-remove-permission"
-						data-permission="${permission.api}"
-					>
-						x
-					</button>
-				</th>
-			`;
-
-			numberColor = numberColor === 1 ? 2 : 1;
-		});
-
-		toReturn += `
-			</tr>
-			<tr>
-				<th class="text-center th-label" scope="col">
-					Object.Field
-				</th>
-		`;
-
-		numberColor = 1;
-
-		this.selectedPermissions.forEach(permission =>{
-			toReturn += `
-				<th class="text-center view-edit-${numberColor}" scope="col">
-					View
-					<br/>
-
-					<input 
-						data-permission="${permission.api}" 
-						data-type="read"
-						type="checkbox"
-						class="input-checkbox-all"
-						${permission.read ? 'checked' : ''}
-					/>
-				</th>
-				<th class="text-center view-edit-${numberColor}" scope="col">
-					Edit
-					<br/>
-					<input 
-						data-permission="${permission.api}" 
-						data-type="edit"
-						type="checkbox"
-						class="input-checkbox-all"
-						${permission.edit ? 'checked' : ''}
-					/>
-				</th>
-			`;
-			
-			numberColor = numberColor === 1 ? 2 : 1;
-		});
-
-		toReturn += `
-			</tr>
-			</thead>
-			<tbody>
-		`;
-						
-						this.selectedFields.forEach(field =>{
-							toReturn += `
-								<tr class="slds-hint-parent" scope="row">
-									<td class="text-left">
-										<button 
-											type="button"
-											class="icon-remove button-remove-field"
-											data-field="${field}"
-										>
-											x
-										</button>
-
-										${field}
-									</td>
-							`;
-				
-							numberColor = 1;
-
-							for(let x in this.selectedPermissions){
-								let recordValue = this.values.get(this.selectedPermissions[x].api +'.'+ field);
-
-								toReturn += `
-									<td class="center view-edit-${numberColor}">
-										<input 
-											data-field="${field}" 
-											data-permission="${this.selectedPermissions[x].api}" 
-											data-type="read" 
-											type="checkbox" 
-											class="input-checkbox"
-											${recordValue.read ? 'checked' : ''}
-										/>
-									</td>
-									<td class="center view-edit-${numberColor}">
-										<input 
-											data-field="${field}" 
-											data-permission="${this.selectedPermissions[x].api}" 
-											data-type="edit" 
-											type="checkbox" 
-											class="input-checkbox"
-											${recordValue.edit ? 'checked' : ''}
-										/>
-									</td>
-								`;
-
-								numberColor = numberColor === 1 ? 2 : 1;
-							}
-				
-							toReturn += `
-								</tr>
-							`; 
-						});
-
-				toReturn += `
-						</tbody>
-					</table>
-				</div>
-				<footer class="slds-card__footer">
-					<button id="button-clear" type="button" class="slds-button slds-button_neutral">Clear</button>
-					<button id="button-save" type="button" class="slds-button slds-button_brand">Save</button>
-				</footer>
-			</article>
-		`;
-
-		return toReturn;
-	}
-
-	private createHtmlModal(){
-		let toReturn = ``;
-
-		if(this.showModal){
-			toReturn = `
-				<section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
-				<div class="slds-modal__container">
-				<div class="slds-modal__content slds-p-around_medium">
-					<p>
-						<label class="slds-form-element__label" for="select-01">
-							Object
-						</label>
-						<div class="slds-form-element__control">
-							<div class="slds-select_container">
-								<select id="input-object-describe" class="slds-select">
-			`;
-
-								this.listObject.forEach(object =>{
-									toReturn += `
-										<option 
-											value="${object}" 
-											${this.objectToDescribe === object ? 'selected' : ''}
-										>
-											${object}
-										</option>
-									`;
-								});
-
-								toReturn += `
-								</select>
-							</div>
-
-							<br/>
-
-							<button class="slds-button slds-button_brand" id="button-set-object">
-								Get Fields
-							</button>
-
-							<hr/>
-						</div>
-						<div class="slds-form-element__control">
-							<div class="slds-select_container">
-								<table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
-									<thead>
-										<tr>
-											<th class="text-center th-label" scope="col">
-												<input 
-													type="checkbox"
-													id="input-checkbox-object-field-all"
-												/>
-											</th>
-											<th class="text-center th-label" scope="col">Label</th>
-											<th class="text-center th-label" scope="col">API</th>
-										</tr>
-									</thead>
-									<tbody>
-			`;
-
-								this.listFieldObject.forEach(field =>{
-									toReturn += `
-										<tr>
-											<td class="text-center">
-												<input 
-													type="checkbox"
-													class="input-checkbox-object-field"
-													data-api="${field.api}"
-												/>
-											</td>
-											<td>${field.label}</td>
-											<td>${field.api}</td>
-										</tr>
-									`;
-								});
-
-								toReturn += `
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</p>
-					</div>
-					<div class="slds-modal__footer">
-						<button id="button-close-modal" class="slds-button slds-button_neutral">Cancel</button>
-						<button id="button-add-object-fields" class="slds-button slds-button_brand">Add Fields</button>
-					</div>
-				</div>
-				</section>
-				<div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
-			`;
-		}
-
-		return toReturn;
-	}
-
-	private createHtmlPermissionSet(){
-		let toReturn = ``; 
-
-		if(this.isConnected){
-			toReturn += `
-			<article class="slds-card">
-				<div class="slds-card__body slds-card__body_inner">
-					<div class="slds-form-element">
-						<label class="slds-form-element__label" for="select-01">
-							Permission Set
-						</label>
-						<div class="slds-form-element__control">
-							<div class="slds-select_container">
-								<select id="input-permission-set" class="slds-select">
-			`;
-
-			this.permissionsToSelect.forEach(permission =>{
-				toReturn += `<option value="${permission.api}">${permission.label} (${permission.api})</option>`;
-			});
-
-			toReturn += `
-								</select>
-							</div>
-						</div>
-					</div>
-
-					<div class="slds-form-element">
-						<div class="slds-form-element__control">
-							<div class="slds-checkbox">
-								<input 
-									type="checkbox" 
-									name="options" 
-									id="input-save-default-permission-set" 
-									${this.checkedDefaultPermissionSet ? 'checked' : ''}
-								/>
-								<label class="slds-checkbox__label" for="input-save-default-permission-set">
-									<span class="slds-checkbox_faux"></span>
-									<span class="slds-form-element__label">
-										Set used permissions as default for next use
-									</span>
-								</label>
-							</div>
-						</div>
-					</div>
-				</div>
-				<footer class="slds-card__footer slds-card__footer-action">
-					<button id="button-add-permission-set" type="button" class="slds-button slds-button_brand">Add Permission</button>
-				</footer>
-			</article>
-				<!-- <button type="button" id="button-refresh-permission">REFRESH</button> -->
-			`;
-		}
-
-		return toReturn;
-	}
-
-	private createHtmlField(){
-		let toReturn = `
-			<article class="slds-card">
-				<div class="slds-card__body slds-card__body_inner">
-					<div class="slds-grid slds-gutters">
-						<div class="slds-col">
-							<div class="slds-form-element">
-								<label class="slds-form-element__label" for="text-input-id-50">
-									Object API Name
-								</label>
-								<input type="text" id="input-object" class="slds-input" value="${this.selectedObject}"/>
-							</div>
-						</div>
-
-						<div class="slds-col">
-							<div class="slds-form-element">
-								<label class="slds-form-element__label" for="text-input-id-50">
-									Field API Name
-								</label>
-								<input type="text" id="input-field" class="slds-input" value="${this.selectedField}"/>
-							</div>
-						</div>
-					</div>
-				</div>
-				<footer class="slds-card__footer">
-					<button id="button-add-field-object" type="button" class="slds-button slds-button_brand">
-						Add Fields by Object
-					</button>
-					
-					<button id="button-add-field" type="button" class="slds-button slds-button_brand">
-						Add Field
-					</button>
-				</footer>
-			</article>
-		`;
-
-		return toReturn;
-	}
-
-	private createHtmlContent(){
-		let toReturn = '';
-
-		if(this.isConnected){
-			toReturn = `
-				${this.createHtmlField()}
-				
-				${this.createHtmlMessage()}
-				
-				${this.createHtmlTable()}
-			`;
-		}
-
-		return toReturn;
-	}
-
-	private createHtmlConnection(){
-		let toReturn = `
-		<article class="slds-card">
-			<div class="slds-card__body slds-card__body_inner">
-				<div class="form-element">
-					<label class="slds-form-element__label" for="select-01">
-						Org list
-					</label>
-					<div class="slds-form-element__control">
-						<div class="slds-select_container">
-							<select id="input-org" class="slds-select">
-		`;
-
-		this.listOrgs.forEach(org =>{
-			toReturn += `<option value="${org}" ${this.org === org ? 'selected' : ''}>${org}</option>`;
-		});
-
-		toReturn += `
-						</select>
-					</div>
-				</div>
-			</div>
-		`;
-
-		if(this.isConnected){
-			toReturn += `
-			<div class="slds-form-element">
-					<div class="slds-form-element__control">
-						<div class="slds-checkbox">
-							<input type="checkbox" name="options" id="input-save-default-org" ${this.checkedDefaultOrg ? 'checked' : ''}/>
-							<label class="slds-checkbox__label" for="input-save-default-org">
-							<span class="slds-checkbox_faux"></span>
-							<span class="slds-form-element__label">Set this org as default for next use</span>
-							</label>
-						</div>
-					</div>
-				</div>`;
-		}
-
-		toReturn += `
-			</div>
-			<footer class="slds-card__footer">
-				<button id="button-set-org" type="button" class="slds-button slds-button_brand">Set Org</button>
-			</footer>
-		</article>
-		`;
-
-		return toReturn;
-	}
-
 	private createMessage(isActive: boolean, type: MESSAGE_TYPE = MESSAGE_TYPE.INFO, message?: any){
 		this.pageMessageIsActive = isActive;
 		this.pageMessageType = type === MESSAGE_TYPE.ERROR ? 'error' : type === MESSAGE_TYPE.SUCCESS ? 'success' : 'info';
@@ -1246,91 +837,38 @@ export class PageView{
 		}
 	}
 
-	private createHtmlMessage(){
-		let toReturn = ``;
-
-		if(this.pageMessageIsActive){
-			toReturn = `
-				<div class="slds-notify_container slds-is-relative">
-					<div class="slds-notify slds-notify_toast slds-theme_${this.pageMessageType}" role="status">
-						<div class="slds-notify__content">
-							<h2 class="slds-text-heading_small ">`;
-
-								this.pageMessageText.forEach(msg =>{
-									toReturn += `${msg}<br/>`;
-								});
-								
-							toReturn += `</h2>
-						</div>
-					</div>
-				</div>
-			`;
-		}
-
-		return toReturn;
-	}
-
 	private _getHtmlForWebview(webview: vscode.Webview){
-		let toReturn = ``;
+		if(PageView.currentPanel !== undefined){
+			const scriptUri = webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js')
+			);
 
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+			const styleUri = webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/css/', 'style.css')
+			);
 
-		const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media/css/', 'style.css'));
-		const sldsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media/slds/styles/', 'salesforce-lightning-design-system.css'));
-		const loadingUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media/slds/images/spinners/', 'slds_spinner_brand.gif'));
+			const sldsUri = webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/slds/styles/', 'salesforce-lightning-design-system.css')
+			);
 
-		// Use a nonce to only allow specific scripts to be run
-		// const nonce = getNonce();
+			const loadingUri = webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/slds/images/spinners/', 'slds_spinner_brand.gif')
+			);
 
-		toReturn = `
-			<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-				<link href="${styleUri}" rel="stylesheet">
-				<link href="${sldsUri}" rel="stylesheet">
-
-				<title>${PROJECT_NAME}</title>
-			</head>
-			<body>
-				${this.createHtmlModal()}
-		`;
-
-		if(this.isLoading){
-			toReturn += 
-			`
-				<article class="slds-card">
-					<div class="slds-card__body slds-card__body_inner center">
-						<img src="${loadingUri}" class="center" width="50" />
-					</div>
-					<footer class="slds-card__footer">
-						${this.loadingText}
-					</footer>
-				</article>
-			`;
+			let htmlClass = new html(
+				PageView.currentPanel, 
+				webview, 
+				scriptUri, 
+				styleUri, 
+				sldsUri, 
+				loadingUri, 
+				PROJECT_NAME
+			);
+			
+			return htmlClass.getHtml();
 		}else{
-			toReturn += `
-				<div class="slds-grid slds-gutters">
-					<div class="slds-col slds-size_1-of-2"">
-						${this.createHtmlConnection()}
-					</div>
-					<div class="slds-col slds-size_1-of-2">
-						${this.createHtmlPermissionSet()}
-					</div>
-				</div>
-
-				${this.createHtmlContent()}
-				<script src="${scriptUri}"></script>
-			`;
+			return '';
 		}
-
-		toReturn += `
-			</body>
-		</html>`;
-
-		return toReturn;
 	}
 
 	private setError(error: any, text?: string){
