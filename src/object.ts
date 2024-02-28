@@ -1,7 +1,7 @@
 import { executeCommand } from "./cmd";
 
-export async function getObjects(): Promise<Array<string>>{
-    let jsonResult = await executeCommand('sf sobject list --sobject all --json');
+export async function getObjects(org: string): Promise<Array<string>>{
+    let jsonResult = await executeCommand(`sf sobject list -o ${org} --sobject all --json`);
 
     return JSON.parse(jsonResult.stdout).result;
 }
