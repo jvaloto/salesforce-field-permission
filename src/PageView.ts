@@ -374,15 +374,20 @@ export class PageView{
 			if(this.listObject.length){
 				this._update();
 			}else{
-				getObjects(this.org)
-				.then(result =>{
-					this.listObject = result;
-				})
-				.catch(error =>{
-					// TODO:
-				})
-				.finally(() =>{
-					this._update();
+				vscode.window.withProgress({
+					location: vscode.ProgressLocation.Notification,
+					title: 'Loading objects...',
+				}, async (progress) => {
+					await getObjects(this.org)
+					.then(result =>{
+						this.listObject = result;
+					})
+					.catch(error =>{
+						this.setError(error);
+					})
+					.finally(() =>{
+						this._update();
+					});
 				});
 			}
 		}else{
@@ -394,14 +399,19 @@ export class PageView{
 		this.objectToDescribe = object;
 
 		if(this.objectToDescribe){
-			getFields(this.org, this.objectToDescribe)
-			.then(result =>{
-				this.listFieldObject = result;
+			vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: 'Loading fields...',
+			}, async (progress) => {
+				await getFields(this.org, this.objectToDescribe)
+				.then(result =>{
+					this.listFieldObject = result;
 
-				this._update();
-			})
-			.catch(error =>{
-				// TODO:
+					this._update();
+				})
+				.catch(error =>{
+					this.setError(error);
+				});
 			});
 		}
 	}
@@ -698,88 +708,64 @@ export class PageView{
 
 		this._update();
 
-		this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving...',
+		}, async (progress) => {
+			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
-		let listRecordsToCreate = new Array();
-		let listRecordsToUpdate = new Array();
+			let listRecordsToCreate = new Array();
+			let listRecordsToUpdate = new Array();
 
-		for(let [key, value] of this.values){
-			let record = {
-				Id: value.id,
-				ParentId: value.permissionId,
-				Field: value.field,
-				PermissionsRead: value.read,
-				PermissionsEdit: value.edit,
-				SObjectType: value.field.split('.')[0]
-			};
+			for(let [key, value] of this.values){
+				let record = {
+					Id: value.id,
+					ParentId: value.permissionId,
+					Field: value.field,
+					PermissionsRead: value.read,
+					PermissionsEdit: value.edit,
+					SObjectType: value.field.split('.')[0]
+				};
 
-			if(value.id){
-				listRecordsToUpdate.push(record);
-			}else{
-				if(value.read){
-					listRecordsToCreate.push(record);
+				if(value.id){
+					listRecordsToUpdate.push(record);
+				}else{
+					if(value.read){
+						listRecordsToCreate.push(record);
+					}
 				}
 			}
-		}
 
-		const formatErrorMessage = function(record: any, error: any){
-			let messageToReturn = record.Field +': ';
+			const formatErrorMessage = function(record: any, error: any){
+				let messageToReturn = record.Field +': ';
 
-			if(error[0].statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'){
-				messageToReturn += 'Invalid field or is not updatable';
-			}else{
-				messageToReturn += error[0].message;
-			}
+				if(error[0].statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'){
+					messageToReturn += 'Invalid field or is not updatable';
+				}else{
+					messageToReturn += error[0].message;
+				}
 
-			return messageToReturn;
-		};
+				return messageToReturn;
+			};
 
-		let errorList = new Array();
+			let errorList = new Array();
 
-		this.createRecords(listRecordsToCreate)
-		.then((result: any) =>{
-			if(result){
-				let index = 0;
-				
-				result.forEach((item: any) =>{
-					let record = listRecordsToCreate[index];
-
-					if(item.success){
-						let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
-
-						this.values.get(key).id = item.id;
-					}else{
-						errorList.push(formatErrorMessage(record, item.errors));
-					}
-
-					index ++;
-				});
-			}
-		})
-		.catch(error =>{
-			errorList.push(error);
-		})
-		.finally(() =>{
-			this.updateRecords(listRecordsToUpdate)
+			await this.createRecords(listRecordsToCreate)
 			.then((result: any) =>{
 				if(result){
 					let index = 0;
-	
+					
 					result.forEach((item: any) =>{
-						let record = listRecordsToUpdate[index];
+						let record = listRecordsToCreate[index];
 
 						if(item.success){
-							if(!record.read && !record.edit){
-								let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
+							let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
 
-								if(!record.PermissionsRead){
-									this.values.get(key).id = null;
-								}
-							}
+							this.values.get(key).id = item.id;
 						}else{
 							errorList.push(formatErrorMessage(record, item.errors));
 						}
-	
+
 						index ++;
 					});
 				}
@@ -788,21 +774,50 @@ export class PageView{
 				errorList.push(error);
 			})
 			.finally(() =>{
-				if(errorList.length){
-					let newErrorList = new Array();
+				this.updateRecords(listRecordsToUpdate)
+				.then((result: any) =>{
+					if(result){
+						let index = 0;
+		
+						result.forEach((item: any) =>{
+							let record = listRecordsToUpdate[index];
 
-					errorList.forEach(error =>{
-						if(!newErrorList.includes(error)){
-							newErrorList.push(error);
-						}
-					});
+							if(item.success){
+								if(!record.read && !record.edit){
+									let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
 
-					this.createMessage(true, MESSAGE_TYPE.ERROR, newErrorList);
-				}else{
-					this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
-				}
+									if(!record.PermissionsRead){
+										this.values.get(key).id = null;
+									}
+								}
+							}else{
+								errorList.push(formatErrorMessage(record, item.errors));
+							}
+		
+							index ++;
+						});
+					}
+				})
+				.catch(error =>{
+					errorList.push(error);
+				})
+				.finally(() =>{
+					if(errorList.length){
+						let newErrorList = new Array();
 
-				this._update();
+						errorList.forEach(error =>{
+							if(!newErrorList.includes(error)){
+								newErrorList.push(error);
+							}
+						});
+
+						this.createMessage(true, MESSAGE_TYPE.ERROR, newErrorList);
+					}else{
+						this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
+					}
+
+					this._update();
+				});
 			});
 		});
 	}
