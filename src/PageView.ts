@@ -374,7 +374,7 @@ export class PageView{
 			if(this.listObject.length){
 				this._update();
 			}else{
-				getObjects()
+				getObjects(this.org)
 				.then(result =>{
 					this.listObject = result;
 				})
