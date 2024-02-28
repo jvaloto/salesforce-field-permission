@@ -394,7 +394,7 @@ export class PageView{
 		this.objectToDescribe = object;
 
 		if(this.objectToDescribe){
-			getFields(this.objectToDescribe)
+			getFields(this.org, this.objectToDescribe)
 			.then(result =>{
 				this.listFieldObject = result;
 
