@@ -324,19 +324,36 @@ export class html{
 
                             <hr/>
                         </div>
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label">
+                                Filter
+                            </label>
+                            <input 
+                                type="text" 
+                                id="input-filter-field" 
+                                class="slds-input"
+                            />
+                        </div>
+
+                        <br/>
+
                         <div class="slds-form-element__control">
                             <div class="slds-select_container">
-                                <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                                <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered spf-table-field">
                                     <thead>
                                         <tr>
-                                            <th class="text-center th-label" scope="col">
+                                            <th class="text-center th-label column-input-checkbox" scope="col">
                                                 <input 
                                                     type="checkbox"
                                                     id="input-checkbox-object-field-all"
                                                 />
                                             </th>
-                                            <th class="text-center th-label" scope="col">Label</th>
-                                            <th class="text-center th-label" scope="col">API</th>
+                                            <th class="text-center th-label th-size-2" scope="col">
+                                                Label
+                                            </th>
+                                            <th class="text-center th-label th-size-2" scope="col">
+                                                API
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -344,16 +361,16 @@ export class html{
 
                                 this.pageView.listFieldObject.forEach((field: any) =>{
                                     toReturn += `
-                                        <tr>
-                                            <td class="text-center">
+                                        <tr class="field-row">
+                                            <td class="text-center column-input-checkbox">
                                                 <input 
                                                     type="checkbox"
                                                     class="input-checkbox-object-field"
                                                     data-api="${field.api}"
                                                 />
                                             </td>
-                                            <td>${field.label}</td>
-                                            <td>${field.api}</td>
+                                            <td class="td-data th-size-2">${field.label}</td>
+                                            <td class="td-data th-size-2">${field.api}</td>
                                         </tr>
                                     `;
                                 });
@@ -404,7 +421,7 @@ export class html{
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                     <thead>
                         <tr>
-                            <th class="text-center th-label" scope="col">
+                            <th class="text-center th-label" colspan="2" scope="col">
                                 Permission Set 
                             </th>
         `;
@@ -416,7 +433,7 @@ export class html{
                 <th colspan="2" class="text-center view-edit-${numberColor}" scope="col">
                     ${permission.label}
                     <br/>
-                    (${permission.api})
+                    ${permission.api}
                     <br/>
                     <button
                         type="button" 
@@ -434,7 +451,7 @@ export class html{
         toReturn += `
             </tr>
             <tr>
-                <th class="text-center th-label" scope="col">
+                <th class="text-center th-label" colspan="2" scope="col">
                     Object.Field
                 </th>
         `;
@@ -443,10 +460,9 @@ export class html{
 
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
-                <th class="text-center view-edit-${numberColor}" scope="col">
+                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
                     View
                     <br/>
-
                     <input 
                         data-permission="${permission.api}" 
                         data-type="read"
@@ -455,7 +471,7 @@ export class html{
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
-                <th class="text-center view-edit-${numberColor}" scope="col">
+                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
                     Edit
                     <br/>
                     <input 
@@ -480,7 +496,7 @@ export class html{
                         this.pageView.selectedFields.forEach(field =>{
                             toReturn += `
                                 <tr class="slds-hint-parent" scope="row">
-                                    <td class="text-left">
+                                    <td class="column-input-checkbox no-border-right">
                                         <button 
                                             type="button"
                                             class="icon-remove button-remove-field"
@@ -488,7 +504,8 @@ export class html{
                                         >
                                             x
                                         </button>
-
+                                    </td>
+                                    <td class="text-left no-border-left width-100">
                                         ${field}
                                     </td>
                             `;
@@ -499,7 +516,7 @@ export class html{
                                 let recordValue = this.pageView.values.get(this.pageView.selectedPermissions[x].api +'.'+ field);
 
                                 toReturn += `
-                                    <td class="center view-edit-${numberColor}">
+                                    <td class="center column-input-checkbox view-edit-${numberColor}">
                                         <input 
                                             data-field="${field}" 
                                             data-permission="${this.pageView.selectedPermissions[x].api}" 
@@ -509,7 +526,7 @@ export class html{
                                             ${recordValue.read ? 'checked' : ''}
                                         />
                                     </td>
-                                    <td class="center view-edit-${numberColor}">
+                                    <td class="center column-input-checkbox view-edit-${numberColor}">
                                         <input 
                                             data-field="${field}" 
                                             data-permission="${this.pageView.selectedPermissions[x].api}" 

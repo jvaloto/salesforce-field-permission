@@ -701,6 +701,11 @@ export class PageView{
 
 		this.values = new Map();
 
+		this.selectedPermissions.forEach(permission =>{
+			permission.read = false;
+			permission.edit = false;
+		});
+
 		this._update();
 	}
 

@@ -39,9 +39,10 @@ body{
 }
 
 .sfp-table{
+	font-size: 12px;
     border: 1px solid #e5e5e5;
-    overflow: scroll;
     display: block;
+    overflow: scroll;
 }
 
 .sfp-table hr{
@@ -91,4 +92,33 @@ body{
 
 #button-where-permission{
 	margin-bottom: 15px;
+}
+
+.column-input-checkbox{
+	width: 2% !important;
+	padding: 5px !important;
+}
+
+.th-size-2{
+	width: 49% !important;
+}
+
+.spf-table-field td{
+	table-layout:fixed;
+}
+
+.hidden{
+	display: none;
+}
+
+.no-border-right{
+	border-right: 0px !important;
+}
+
+.no-border-left{
+	border-left: 0px !important;
+}
+
+.width-100{
+	width: 100% !important;
 }

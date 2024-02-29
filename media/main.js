@@ -1,12 +1,8 @@
-// This script will be run within the webview itself
-// It cannot access the main VS Code APIs directly.
-
+// @ts-nocheck
 (function () {
-  // @ts-ignore
   const vscode = acquireVsCodeApi();
 
   document.querySelector('#input-save-default-org')?.addEventListener('change', (event) =>{
-    // @ts-ignore
     let checked = event.target.checked;
 
     vscode.postMessage({
@@ -16,7 +12,6 @@
   });
 
   document.querySelector('#input-save-default-permission-set')?.addEventListener('change', (event) =>{
-    // @ts-ignore
     let checked = event.target.checked;
 
     vscode.postMessage({
@@ -26,7 +21,6 @@
   });
 
   document.querySelector('#button-set-org')?.addEventListener('click', () =>{
-    // @ts-ignore
     let org = document.querySelector("#input-org").value;
 
     vscode.postMessage({
@@ -36,7 +30,6 @@
   });
 
   document.querySelector('#button-add-permission-set')?.addEventListener('click', () =>{
-    // @ts-ignore
     let permissionSet = document.querySelector("#input-permission-set").value;
 
     vscode.postMessage({
@@ -47,7 +40,6 @@
 
   document.querySelectorAll(".button-remove-permission").forEach(item =>{
     item.addEventListener('click', (event) =>{
-      // @ts-ignore
       let permissionSet = event.target.dataset.permission;
 
       vscode.postMessage({
@@ -60,7 +52,6 @@
 
   document.querySelectorAll(".button-remove-field").forEach(item =>{
     item.addEventListener('click', (event) =>{
-      // @ts-ignore
       let field = event.target.dataset.field;
 
       vscode.postMessage({
@@ -77,10 +68,8 @@
   });
 
   document.querySelector('#button-add-field')?.addEventListener('click', () =>{
-    // @ts-ignore
     let object = document.querySelector("#input-object").value;
 
-    // @ts-ignore
     let field = document.querySelector("#input-field").value;
 
     vscode.postMessage({
@@ -107,7 +96,6 @@
   });
 
   document.querySelector('#button-set-object')?.addEventListener('click', () =>{
-    // @ts-ignore
     let object = document.querySelector("#input-object-describe").value;
 
     vscode.postMessage({
@@ -118,16 +106,11 @@
 
   document.querySelectorAll(".input-checkbox").forEach(item =>{
     item.addEventListener('change', (event) =>{
-      // @ts-ignore
       let checked = event.target.checked;
-      // @ts-ignore
       let type = event.target.dataset.type;
-      // @ts-ignore
       let permission = event.target.dataset.permission;
-      // @ts-ignore
       let field = event.target.dataset.field;
 
-      // @ts-ignore
       vscode.postMessage({
         command: 'CHANGE-VALUE',
         text: {'checked': checked, 'type': type, 'permission': permission, 'field': field }
@@ -137,14 +120,10 @@
 
   document.querySelectorAll(".input-checkbox-all").forEach(item =>{
     item.addEventListener('change', (event) =>{
-      // @ts-ignore
       let checked = event.target.checked;
-      // @ts-ignore
       let type = event.target.dataset.type;
-      // @ts-ignore
       let permission = event.target.dataset.permission;
 
-      // @ts-ignore
       vscode.postMessage({
         command: 'CHANGE-VALUE-ALL',
         text: {'checked': checked, 'type': type, 'permission': permission }
@@ -168,11 +147,9 @@
     let listFields = new Array();
 
     document.querySelectorAll(".input-checkbox-object-field:checked").forEach(item =>{
-      // @ts-ignore
       listFields.push(item.dataset.api);
     });
 
-    // @ts-ignore
     vscode.postMessage({
       command: 'ADD-LIST-FIELDS',
       text: listFields
@@ -181,14 +158,35 @@
 
   document.querySelector('#input-checkbox-object-field-all')?.addEventListener('click', () =>{
     document.querySelectorAll(".input-checkbox-object-field").forEach(item =>{
-      // @ts-ignore
-      item.checked = document.querySelector('#input-checkbox-object-field-all').checked;
+      if(![...item.parentElement.parentElement.classList].includes("hidden")){
+        item.checked = document.querySelector('#input-checkbox-object-field-all').checked;
+      }
     });
   });
 
   document.querySelector('#button-where-permission')?.addEventListener('click', () =>{
     vscode.postMessage({
       command: 'WHERE-IS-PERMISSION'
+    });
+  });
+
+  document.querySelector('#input-filter-field')?.addEventListener('keyup', () =>{
+    Array.from(document.querySelectorAll('.field-row')).forEach(row =>{
+      let isHidden = true;
+
+      Array.from(row.querySelectorAll('.td-data')).forEach(column =>{
+        if(column.innerHTML.toUpperCase().includes(
+          document.querySelector('#input-filter-field').value.toUpperCase()
+        )){
+          isHidden = false;
+        }
+      });
+
+      if(isHidden){
+        row.classList.add("hidden");
+      }else{
+        row.classList.remove("hidden");
+      }
     });
   });
 
