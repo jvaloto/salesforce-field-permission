@@ -4,6 +4,20 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.1.3
+
+- Filter fields by label or api from object
+- Loadings on load object list and get fields list
+- CSS changes
+
+## 0.1.2
+
+- Minor fixes
+
+## 0.1.1
+
+- Minor fixes
+
 ## 0.1.0
 
 - Added "Where's the permission?" function
