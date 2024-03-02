@@ -90,8 +90,14 @@ export class html{
                 ${this.createHtmlField()}
                 
                 ${this.createHtmlMessage()}
+
+                <div class="slds-tabs_default">
+                    ${this.createHtmlTabs()}
                 
-                ${this.createHtmlTable()}
+                    ${this.createHtmlTable()}
+
+                    ${this.createHtmlTabContent()}
+                </div>
             `;
         }
 
@@ -133,6 +139,13 @@ export class html{
                     </div>
                 </div>
                 <footer class="slds-card__footer">
+                    <button 
+                        id="button-add-object" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                    >
+                        Add Object
+                    </button>
                     <button 
                         id="button-add-field-object" 
                         type="button" 
@@ -405,8 +418,36 @@ export class html{
         return toReturn;
     }
 
+    createHtmlTabs(){
+        let toReturn = `
+            <ul class="slds-tabs_default__nav" role="tablist">
+                <li class="slds-tabs_default__item slds-is-active li-tab" data-id="Field">
+                    <a class="slds-tabs_default__link input-tab" data-id="Field">
+                        Fields
+                    </a>
+                </li>
+        `;
+        
+        this.pageView.listSelectedObjects.forEach(object =>{
+            toReturn += `
+                    <li class="slds-tabs_default__item li-tab" data-id="${object}">
+                        <a class="slds-tabs_default__link input-tab" data-id="${object}">
+                            ${object}
+                        </a>
+                    </li>
+            `;
+        });
+
+        toReturn += `
+            </ul>
+        `;
+
+        return toReturn;
+    }
+
     createHtmlTable(){
         let toReturn = `
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="Field">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <div class="slds-no-flex">
@@ -567,7 +608,101 @@ export class html{
                     </button>
                 </footer>
             </article>
+            </div>
         `;
+
+        return toReturn;
+    }
+
+    createHtmlTabContent(){
+        let toReturn = '';
+
+        this.pageView.listSelectedObjects.forEach(object =>{
+            toReturn += `
+                <div class="slds-tabs_default__content tab-content slds-hide" data-id="${object}">
+                    <article class="slds-card">
+                        <div class="slds-card__body slds-card__body_inner">
+                            <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center width-100" scope="col">
+                                            Object 
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionSetTabSetting
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsRead
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsCreate
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsEdit
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsDelete
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsViewAllRecords
+                                        </th>
+                                        <th class="text-center" scope="col">
+                                            PermissionsModifyAllRecords
+                                        </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="slds-hint-parent" scope="row">
+                                    <td class="width-100">
+                                        ${object}
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                    <td class="center column-input-checkbox view-edit-1">
+                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <footer class="slds-card__footer">
+                        <button 
+                            id="button-remove" 
+                            data-object="${object}"
+                            type="button" 
+                            class="slds-button slds-button_neutral"
+                        >
+                            Remove
+                        </button>
+                        <button 
+                            id="button-save" 
+                            data-object="${object}"
+                            type="button" 
+                            class="slds-button slds-button_brand"
+                        >
+                            Save
+                        </button>
+                    </footer>
+                </article>
+            </div>
+            `;
+        });
 
         return toReturn;
     }

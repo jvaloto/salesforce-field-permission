@@ -189,5 +189,38 @@
       }
     });
   });
+  
+  document.querySelectorAll(".input-tab").forEach(item =>{
+    item.addEventListener('click', (event) =>{
+        let id = event.target.dataset.id;
+        
+        Array.from(document.querySelectorAll('.li-tab')).forEach(li =>{
+            if(li.dataset.id === id){
+                li.classList.add('slds-is-active');
+            }else{
+              li.classList.remove('slds-is-active');
+            }
+        });
+        
+        Array.from(document.querySelectorAll('.tab-content')).forEach(content =>{
+          if(content.dataset.id === id){
+                content.classList.remove('slds-hide');
+                content.classList.add('slds-show');
+            }else{
+              content.classList.remove('slds-show');
+                content.classList.add('slds-hide');
+              }
+            });
+    });
+  });
+  
+  document.querySelector('#button-add-object')?.addEventListener('click', () =>{
+    let object = document.querySelector("#input-object").value;
+
+    vscode.postMessage({
+      command: 'ADD-OBJECT',
+      text: object
+    });
+  });
 
 }());

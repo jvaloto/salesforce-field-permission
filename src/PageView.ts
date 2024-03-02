@@ -43,6 +43,7 @@ export class PageView{
 	public listObject: Array<any>;
 	public objectToDescribe: string;
 	public listFieldObject: Array<any>;
+	public listSelectedObjects: Array<string>;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -87,6 +88,7 @@ export class PageView{
 		this.showModal = false;
 		this.listObject = new Array();
 		this.listFieldObject = new Array();
+		this.listSelectedObjects = new Array();
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -199,6 +201,10 @@ export class PageView{
 						return;
 					case 'WHERE-IS-PERMISSION':
 						this.whereIsPermission();
+
+						return;
+					case 'ADD-OBJECT':
+						this.addObject(message.text);
 
 						return;
 				}
@@ -332,9 +338,12 @@ export class PageView{
 				this.checkedDefaultPermissionSet = false;
 			}
 
-			this.setLoading(false);
-
-			this._update();
+			this.getListObjects()
+			.then(result =>{
+				this.setLoading(false);
+	
+				this._update();
+			});
 		})
 		.catch(error =>{
 			this.setError(error);
@@ -366,6 +375,16 @@ export class PageView{
 		}
 	}
 
+	private async getListObjects(){
+		await getObjects(this.org)
+		.then(result =>{
+			this.listObject = result;
+		})
+		.catch(error =>{
+			this.setError(error);
+		});
+	}
+
 	private showFielsObject(show: boolean){
 		this.showModal = show;
 
@@ -379,16 +398,9 @@ export class PageView{
 					location: vscode.ProgressLocation.Notification,
 					title: 'Loading objects...',
 				}, async (progress) => {
-					await getObjects(this.org)
-					.then(result =>{
-						this.listObject = result;
-					})
-					.catch(error =>{
-						this.setError(error);
-					})
-					.finally(() =>{
-						this._update();
-					});
+					await this.getListObjects();
+
+					this._update();
 				});
 			}
 		}else{
@@ -678,6 +690,14 @@ export class PageView{
 
 			this._update();
 		});
+	}
+
+	private addObject(object: string){
+		if(object && !this.listSelectedObjects.includes(object)){
+			this.listSelectedObjects.push(object);
+			
+			this._update();
+		}
 	}
 
 	private async createRecords(records: Array<any>): Promise<any>{
