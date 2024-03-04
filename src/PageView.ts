@@ -206,6 +206,10 @@ export class PageView{
 						this.addObject(message.text);
 
 						return;
+					case 'REMOVE-OBJECT':
+						this.removeObject(message.text);
+
+						return;
 				}
 			},
 			null,
@@ -693,6 +697,14 @@ export class PageView{
 	private addObject(object: string){
 		if(object && !this.listSelectedObjects.includes(object)){
 			this.listSelectedObjects.push(object);
+			
+			this._update();
+		}
+	}
+
+	private removeObject(object: string){
+		if(object){
+			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
 			
 			this._update();
 		}

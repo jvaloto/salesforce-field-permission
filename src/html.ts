@@ -671,10 +671,9 @@ export class html{
                     </div>
                     <footer class="slds-card__footer">
                         <button 
-                            id="button-remove" 
                             data-object="${object}"
                             type="button" 
-                            class="slds-button slds-button_neutral"
+                            class="slds-button slds-button_neutral button-remove-object"
                         >
                             Remove
                         </button>

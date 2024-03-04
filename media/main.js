@@ -261,10 +261,21 @@
   
   document.querySelector('#button-add-object')?.addEventListener('click', () =>{
     let object = document.querySelector("#input-object").value;
-
+    
     vscode.postMessage({
       command: 'ADD-OBJECT',
       text: object
+    });
+  });
+  
+  document.querySelectorAll(".button-remove-object").forEach(item =>{
+    item.addEventListener('click', (event) =>{
+        let object = event.target.dataset.object;
+
+        vscode.postMessage({
+          command: 'REMOVE-OBJECT',
+          text: object
+        });
     });
   });
 
