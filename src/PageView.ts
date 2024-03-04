@@ -80,7 +80,6 @@ export class PageView{
 		this.permissionsMap = new Map();
 		this.isConnected = false;
 		this.selectedObject = '';
-		this.selectedField = '';
 		this.isLoading = true;
 		this.pageMessageIsActive = false;
 		this.pageMessageType = '';
@@ -341,7 +340,7 @@ export class PageView{
 			this.getListObjects()
 			.then(result =>{
 				this.setLoading(false);
-	
+				
 				this._update();
 			});
 		})
@@ -354,7 +353,6 @@ export class PageView{
 		this.createMessage(false);
 
 		this.selectedObject = object;
-		this.selectedField = field;
 
 		if(object && field){
 			let keyField = `${object}.${field}`;
@@ -368,14 +366,14 @@ export class PageView{
 					listIdPermission.push(permission.id);
 				});
 
-				this.selectedField = '';
-				
 				this.addMetadata([keyField], listIdPermission);
 			}
 		}
 	}
 
 	private async getListObjects(){
+		this.listObject = new Array();
+
 		await getObjects(this.org)
 		.then(result =>{
 			this.listObject = result;
@@ -930,6 +928,11 @@ export class PageView{
 
 	private _update() {
 		this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
+
+		this._panel.webview.postMessage({
+			command: 'JS-UPDATE-OBJECT-LIST'
+			, text: this.listObject
+		});
 	}
 }
 

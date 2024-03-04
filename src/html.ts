@@ -111,7 +111,7 @@ export class html{
                     <div class="slds-grid slds-gutters">
                         <div class="slds-col">
                             <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-50">
+                                <label class="slds-form-element__label">
                                     Object API Name
                                 </label>
                                 <input 
@@ -125,14 +125,13 @@ export class html{
 
                         <div class="slds-col">
                             <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-50">
+                                <label class="slds-form-element__label">
                                     Field API Name
                                 </label>
                                 <input 
                                     type="text" 
                                     id="input-field" 
                                     class="slds-input" 
-                                    value="${this.pageView.selectedField}"
                                 />
                             </div>
                         </div>
@@ -173,7 +172,7 @@ export class html{
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <div class="form-element">
-                    <label class="slds-form-element__label" for="select-01">
+                    <label class="slds-form-element__label">
                         Org list
                     </label>
                     <div class="slds-form-element__control">
@@ -203,7 +202,7 @@ export class html{
                                 id="input-save-default-org" 
                                 ${this.pageView.checkedDefaultOrg ? 'checked' : ''}
                             />
-                            <label class="slds-checkbox__label" for="input-save-default-org">
+                            <label class="slds-checkbox__label">
                                 <span class="slds-checkbox_faux"></span>
                                 <span class="slds-form-element__label">Set this org as default for next use</span>
                             </label>
@@ -237,7 +236,7 @@ export class html{
             <article class="slds-card">
                 <div class="slds-card__body slds-card__body_inner">
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="select-01">
+                        <label class="slds-form-element__label">
                             Permission Set
                         </label>
                         <div class="slds-form-element__control">
@@ -267,7 +266,7 @@ export class html{
                                     id="input-save-default-permission-set" 
                                     ${this.pageView.checkedDefaultPermissionSet ? 'checked' : ''}
                                 />
-                                <label class="slds-checkbox__label" for="input-save-default-permission-set">
+                                <label class="slds-checkbox__label">
                                     <span class="slds-checkbox_faux"></span>
                                     <span class="slds-form-element__label">
                                         Set used permissions as default for next use
@@ -303,27 +302,16 @@ export class html{
                 <div class="slds-modal__container">
                 <div class="slds-modal__content slds-p-around_medium">
                     <p>
-                        <label class="slds-form-element__label" for="select-01">
-                            Object
-                        </label>
-                        <div class="slds-form-element__control">
-                            <div class="slds-select_container">
-                                <select id="input-object-describe" class="slds-select">
-            `;
-
-                                this.pageView.listObject.forEach(object =>{
-                                    toReturn += `
-                                        <option 
-                                            value="${object}" 
-                                                ${this.pageView.objectToDescribe === object ? 'selected' : ''}
-                                            >
-                                            ${object}
-                                        </option>
-                                    `;
-                                });
-
-                                toReturn += `
-                                </select>
+                        <div class="slds-form-element">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="input-object-describe" 
+                                    class="slds-input" 
+                                />
                             </div>
 
                             <br/>

@@ -2,6 +2,51 @@
 (function () {
   const vscode = acquireVsCodeApi();
 
+  var listObject;
+  var lastValue = "";
+  var idTimeout;
+  var ignoreKeys = new Array();
+  ignoreKeys.push(8);
+  ignoreKeys.push(46);
+
+  window.addEventListener('message', event => {
+    const message = event.data;
+
+    switch(message.command) {
+      case 'JS-UPDATE-OBJECT-LIST':
+        listObject = message.text;
+
+        break;
+    }
+  });
+
+  var autocompleteObject = function(event){
+    if(listObject && !ignoreKeys.includes(event.keyCode)){
+        lastValue = event.target.value;
+
+        if(lastValue.length >= 3){
+            if(idTimeout){
+              clearTimeout(idTimeout);
+            }
+            
+            idTimeout = setTimeout(() =>{
+              listObject.forEach(object =>{
+                    if(object.toUpperCase().startsWith(lastValue.toUpperCase())){
+                        event.target.value = object;
+                        event.target.setSelectionRange(lastValue.length, object.length);
+                        
+                        lastValue = lastValue.substring(0, lastValue.length);
+                    }
+                });
+            }, 600);
+        }
+      }
+  };
+
+  document.querySelector('#input-object')?.addEventListener('keyup', autocompleteObject, event);
+  
+  document.querySelector('#input-object-describe')?.addEventListener('keyup', autocompleteObject, event);
+
   document.querySelector('#input-save-default-org')?.addEventListener('change', (event) =>{
     let checked = event.target.checked;
 
