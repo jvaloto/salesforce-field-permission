@@ -10,6 +10,7 @@ enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
 const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
+const DEFAULT_FILTER_SOQL = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -26,7 +27,8 @@ export class PageView{
 	public permissionsToSelect: Array<any>;
 	public selectedPermissions: Array<any>;
 	public selectedFields: Array<any>;
-	public values: Map<any, any>;
+	public fieldValues: Map<any, any>;
+	public objectValues: Map<any, any>;
 	public listOrgs: Array<string>;
 	public isConnected: boolean;
 	public org: string;
@@ -76,7 +78,8 @@ export class PageView{
 		this.permissionsToSelect = new Array();
 		this.selectedPermissions = new Array();
 		this.selectedFields = new Array();
-		this.values = new Map();
+		this.fieldValues = new Map();
+		this.objectValues = new Map();
 		this.permissionsMap = new Map();
 		this.isConnected = false;
 		this.selectedObject = '';
@@ -88,6 +91,9 @@ export class PageView{
 		this.listObject = new Array();
 		this.listFieldObject = new Array();
 		this.listSelectedObjects = new Array();
+
+		// TODO: remove after tests
+		this.listSelectedObjects = new Array('Account', 'Opportunity', 'Lead'); 
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -182,8 +188,12 @@ export class PageView{
 						this.removePermission(message.text);
 
 						return;
-					case 'SAVE':
-						this.save();
+					case 'SAVE-FIELDS':
+						this.saveFields();
+
+						return;
+					case 'SAVE-OBJECT':
+						this.saveObject(message.text);
 
 						return;
 					case 'CLEAR':
@@ -307,7 +317,7 @@ export class PageView{
 				, Name 
 			FROM PermissionSet 
 			WHERE IsCustom = true 
-				AND ( NOT Name LIKE 'X00e%' )
+				${DEFAULT_FILTER_SOQL}
 			ORDER BY Label ASC
 		`)
 		.then(resultPermissions =>{
@@ -470,11 +480,11 @@ export class PageView{
 			WHERE Parent.IsCustom = true
 				AND ParentId IN ('${permissions.join("','")}') 
 				AND Field IN ('${fields.join("','")}')
-				AND ( NOT Parent.Name LIKE 'X00e%' )
+				${DEFAULT_FILTER_SOQL}
 		`)
 		.then(resultFields =>{
 			resultFields.records.forEach((fieldPermission: any) =>{
-				this.values.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
+				this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
 					id: fieldPermission.Id, 
 					permission: fieldPermission.Parent.Name,
 					permissionId: fieldPermission.ParentId,
@@ -488,8 +498,8 @@ export class PageView{
 				this.selectedPermissions.forEach(permission =>{
 					let keyValue = permission.api +'.'+ field;
 
-					if(!this.values.has(keyValue)){
-						this.values.set(keyValue, {
+					if(!this.fieldValues.has(keyValue)){
+						this.fieldValues.set(keyValue, {
 							id: null, 
 							permission: permission.api, 
 							permissionId: permission.id,
@@ -515,7 +525,7 @@ export class PageView{
 		this.selectedFields = this.selectedFields.filter(e => e !== field);
 
 		this.selectedPermissions.forEach(permission =>{
-			this.values.delete(permission.api +'.'+ field);
+			this.fieldValues.delete(permission.api +'.'+ field);
 		});
 
 		this._update();
@@ -526,7 +536,7 @@ export class PageView{
 
 		let key = permission +'.'+ field;
 
-		let value = this.values.get(key);
+		let value = this.fieldValues.get(key);
 
 		if(type === 'edit'){
 			value.edit = checked;
@@ -542,7 +552,7 @@ export class PageView{
 			value.read = checked;
 		}
 		
-		this.values.set(key, value);
+		this.fieldValues.set(key, value);
 
 		this._update();
 	}
@@ -570,10 +580,10 @@ export class PageView{
 		this.selectedPermissions.filter(e => e.api === permission)[0].read = read;
 		this.selectedPermissions.filter(e => e.api === permission)[0].edit = edit;
 
-		for(let [key, value] of this.values){
+		for(let [key, value] of this.fieldValues){
 			if(key.startsWith(permission + '.')){
-				this.values.get(key).read = read;
-				this.values.get(key).edit = edit;
+				this.fieldValues.get(key).read = read;
+				this.fieldValues.get(key).edit = edit;
 			}
 		}
 
@@ -614,9 +624,9 @@ export class PageView{
 
 		this.selectedPermissions = this.selectedPermissions.filter(e => e.api !== permission);
 
-		for(let [key] of this.values){
+		for(let [key] of this.fieldValues){
 			if(key.startsWith(permission +'.')){
-				this.values.delete(key);
+				this.fieldValues.delete(key);
 			}
 		}
 
@@ -628,7 +638,7 @@ export class PageView{
 	private whereIsPermission(){
 		this.createMessage(false);
 
-		this.values = new Map();
+		this.fieldValues = new Map();
 		let listPermissionsToFilter = new Array();
 		this.selectedPermissions = new Array();
 		this.permissionsToSelect = new Array();
@@ -646,7 +656,7 @@ export class PageView{
 			FROM FieldPermissions 
 			WHERE Parent.IsCustom = true
 				AND Field IN ('${this.selectedFields.join("','")}')
-				AND ( NOT Parent.Name LIKE 'X00e%' )
+				${DEFAULT_FILTER_SOQL}
 		`)
 		.then(resultFields =>{
 			resultFields.records.forEach((fieldPermission: any) =>{
@@ -654,7 +664,7 @@ export class PageView{
 					listPermissionsToFilter.push(fieldPermission.ParentId);
 				}
 
-				this.values.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
+				this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
 					id: fieldPermission.Id, 
 					permission: fieldPermission.Parent.Name,
 					permissionId: fieldPermission.ParentId,
@@ -674,8 +684,8 @@ export class PageView{
 				this.selectedPermissions.forEach(permission =>{
 					let keyValue = permission.api +'.'+ field;
 
-					if(!this.values.has(keyValue)){
-						this.values.set(keyValue, {
+					if(!this.fieldValues.has(keyValue)){
+						this.fieldValues.set(keyValue, {
 							id: null, 
 							permission: permission.api, 
 							permissionId: permission.id,
@@ -697,7 +707,56 @@ export class PageView{
 	private addObject(object: string){
 		if(object && !this.listSelectedObjects.includes(object)){
 			this.listSelectedObjects.push(object);
-			
+
+			this.objectValues.set(object, {
+				'tab':{
+					PermissionSetTabSetting: false
+				},
+				'object':{
+					PermissionSetTabSetting: false,
+					PermissionsRead: false,
+					PermissionsCreate: false,
+					PermissionsEdit: false,
+					PermissionsDelete: false,
+					PermissionsViewAllRecords: false,
+					PermissionsModifyAllRecords: false
+				}
+			});
+
+
+			// TODO: get object permission from sfdx
+			let q = `
+				SELECT Id
+					, Parent.Label
+					, Parent.Name
+					, ParentId
+					, PermissionsCreate
+					, PermissionsDelete
+					, PermissionsEdit
+					, PermissionsModifyAllRecords
+					, PermissionsRead
+					, PermissionsViewAllRecords
+					, SobjectType
+				FROM ObjectPermissions 
+				WHERE SobjectType = ${object}
+					AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}') 
+			`;
+
+
+			// TODO: get tab permission from sfdx
+			let q2 = `
+				SELECT Id
+				, Name
+				, Parent.Label
+				, Parent.Name
+				, ParentId
+				, SobjectType
+				, Visibility
+				FROM PermissionSetTabSetting
+				WHERE SobjectType = ${object}
+				AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}') 
+			`;
+
 			this._update();
 		}
 	}
@@ -729,7 +788,7 @@ export class PageView{
 	private clear(){
 		this.selectedFields = new Array();
 
-		this.values = new Map();
+		this.fieldValues = new Map();
 
 		this.selectedPermissions.forEach(permission =>{
 			permission.read = false;
@@ -739,7 +798,7 @@ export class PageView{
 		this._update();
 	}
 
-	private save(){
+	private saveFields(){
 		this.createMessage(false);
 
 		this._update();
@@ -753,7 +812,7 @@ export class PageView{
 			let listRecordsToCreate = new Array();
 			let listRecordsToUpdate = new Array();
 
-			for(let [key, value] of this.values){
+			for(let [key, value] of this.fieldValues){
 				let record = {
 					Id: value.id,
 					ParentId: value.permissionId,
@@ -797,7 +856,7 @@ export class PageView{
 						if(item.success){
 							let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
 
-							this.values.get(key).id = item.id;
+							this.fieldValues.get(key).id = item.id;
 						}else{
 							errorList.push(formatErrorMessage(record, item.errors));
 						}
@@ -823,7 +882,7 @@ export class PageView{
 									let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
 
 									if(!record.PermissionsRead){
-										this.values.get(key).id = null;
+										this.fieldValues.get(key).id = null;
 									}
 								}
 							}else{
@@ -856,6 +915,40 @@ export class PageView{
 				});
 			});
 		});
+	}
+
+	private saveObject(object: string){
+		// TODO: save object in two objects: ObjectPermissions / PermissionSetTabSetting
+
+
+		// let record = {
+		// 	PermissionsRead: false,
+		// 	PermissionsCreate: false,
+		// 	PermissionsEdit: false,
+		// 	PermissionsDelete: false,
+		// 	PermissionsViewAllRecords: false,
+		// 	PermissionsModifyAllRecords: false,
+		// 	ParentId: value.permissionId,
+		// 	SObjectType: object
+		// };
+		
+		// return await create(this.connection, 'ObjectPermissions', [record]);
+		
+
+
+		// visibility
+		// DefaultOff
+		// DefaultOn
+		// if neither = DELETE record
+		
+		// let record = {
+			// Name: object,
+		// 	Visibility: false,
+		// 	ParentId: value.permissionId,
+		// 	SObjectType: value.field.split('.')[0]
+		// };
+
+		// return await create(this.connection, 'PermissionSetTabSetting', [record]);
 	}
 
 	private createMessage(isActive: boolean, type: MESSAGE_TYPE = MESSAGE_TYPE.INFO, message?: any){
@@ -922,6 +1015,18 @@ export class PageView{
 		}else if(type === MESSAGE_TYPE.INFO){
 			vscode.window.showInformationMessage(message);
 		}
+	}
+
+	private getValueFromList(listRecords: Array<any>, field: string){
+		let listToReturn = new Array();
+
+		if(listRecords.length){
+			listRecords.forEach(record =>{
+				listToReturn.push(record[field]);
+			});
+		}
+
+		return listToReturn;
 	}
 
 	public dispose() {

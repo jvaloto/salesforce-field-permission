@@ -178,7 +178,7 @@
 
   document.querySelector('#button-save')?.addEventListener('click', () =>{
     vscode.postMessage({
-      command: 'SAVE'
+      command: 'SAVE-FIELDS'
     });
   });
 
@@ -274,6 +274,17 @@
 
         vscode.postMessage({
           command: 'REMOVE-OBJECT',
+          text: object
+        });
+    });
+  });
+  
+  document.querySelectorAll(".button-save-object").forEach(item =>{
+    item.addEventListener('click', (event) =>{
+        let object = event.target.dataset.object;
+
+        vscode.postMessage({
+          command: 'SAVE-OBJECT',
           text: object
         });
     });

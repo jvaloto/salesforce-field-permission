@@ -490,7 +490,7 @@ export class html{
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
                 <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
-                    View
+                    Read
                     <br/>
                     <input 
                         data-permission="${permission.api}" 
@@ -542,7 +542,7 @@ export class html{
                             numberColor = 1;
 
                             for(let x in this.pageView.selectedPermissions){
-                                let recordValue = this.pageView.values.get(this.pageView.selectedPermissions[x].api +'.'+ field);
+                                let recordValue = this.pageView.fieldValues.get(this.pageView.selectedPermissions[x].api +'.'+ field);
 
                                 toReturn += `
                                     <td class="center column-input-checkbox view-edit-${numberColor}">
@@ -617,25 +617,25 @@ export class html{
                                             Object 
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionSetTabSetting
+                                            Tab
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsRead
+                                            Read
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsCreate
+                                            Create
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsEdit
+                                            Edit
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsDelete
+                                            Delete
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsViewAllRecords
+                                            View All Records
                                         </th>
                                         <th class="text-center" scope="col">
-                                            PermissionsModifyAllRecords
+                                            Modify All Records
                                         </th>
                                 </tr>
                             </thead>
@@ -678,10 +678,9 @@ export class html{
                             Remove
                         </button>
                         <button 
-                            id="button-save" 
                             data-object="${object}"
                             type="button" 
-                            class="slds-button slds-button_brand"
+                            class="slds-button slds-button_brand button-save-object"
                         >
                             Save
                         </button>
