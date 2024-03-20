@@ -9,6 +9,7 @@ export class html{
     sldsUri: vscode.Uri;
     loadingUri: vscode.Uri;
     projectName: string;
+    columnColor: number;
 
     constructor(
         pageView: PageView, 
@@ -198,11 +199,10 @@ export class html{
                         <div class="slds-checkbox">
                             <input 
                                 type="checkbox" 
-                                name="options" 
                                 id="input-save-default-org" 
                                 ${this.pageView.checkedDefaultOrg ? 'checked' : ''}
                             />
-                            <label class="slds-checkbox__label">
+                            <label class="slds-checkbox__label" for="input-save-default-org">
                                 <span class="slds-checkbox_faux"></span>
                                 <span class="slds-form-element__label">Set this org as default for next use</span>
                             </label>
@@ -262,11 +262,10 @@ export class html{
                             <div class="slds-checkbox">
                                 <input 
                                     type="checkbox" 
-                                    name="options" 
                                     id="input-save-default-permission-set" 
                                     ${this.pageView.checkedDefaultPermissionSet ? 'checked' : ''}
                                 />
-                                <label class="slds-checkbox__label">
+                                <label class="slds-checkbox__label" for="input-save-default-permission-set">
                                     <span class="slds-checkbox_faux"></span>
                                     <span class="slds-form-element__label">
                                         Set used permissions as default for next use
@@ -455,11 +454,11 @@ export class html{
                             </th>
         `;
 
-        let numberColor = 1;
+        this.resetColumnColor();
 
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
-                <th colspan="2" class="text-center view-edit-${numberColor}" scope="col">
+                <th colspan="2" class="text-center view-edit-${this.getColumnColor()}" scope="col">
                     ${permission.label}
                     <br/>
                     ${permission.api}
@@ -474,7 +473,7 @@ export class html{
                 </th>
             `;
 
-            numberColor = numberColor === 1 ? 2 : 1;
+            this.setColumnColor();
         });
 
         toReturn += `
@@ -485,11 +484,11 @@ export class html{
                 </th>
         `;
 
-        numberColor = 1;
+        this.resetColumnColor();
 
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
-                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
+                <th class="text-center column-input-checkbox view-edit-${this.getColumnColor()}" scope="col">
                     Read
                     <br/>
                     <input 
@@ -500,7 +499,7 @@ export class html{
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
-                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
+                <th class="text-center column-input-checkbox view-edit-${this.getColumnColor()}" scope="col">
                     Edit
                     <br/>
                     <input 
@@ -513,7 +512,7 @@ export class html{
                 </th>
             `;
             
-            numberColor = numberColor === 1 ? 2 : 1;
+            this.setColumnColor();
         });
 
         toReturn += `
@@ -539,13 +538,13 @@ export class html{
                                     </td>
                             `;
                 
-                            numberColor = 1;
+                            this.resetColumnColor();
 
                             for(let x in this.pageView.selectedPermissions){
                                 let recordValue = this.pageView.fieldValues.get(this.pageView.selectedPermissions[x].api +'.'+ field);
 
                                 toReturn += `
-                                    <td class="center column-input-checkbox view-edit-${numberColor}">
+                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
                                             data-permission="${this.pageView.selectedPermissions[x].api}" 
@@ -555,7 +554,7 @@ export class html{
                                             ${recordValue.read ? 'checked' : ''}
                                         />
                                     </td>
-                                    <td class="center column-input-checkbox view-edit-${numberColor}">
+                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
                                             data-permission="${this.pageView.selectedPermissions[x].api}" 
@@ -567,7 +566,7 @@ export class html{
                                     </td>
                                 `;
 
-                                numberColor = numberColor === 1 ? 2 : 1;
+                                this.setColumnColor();
                             }
                 
                             toReturn += `
@@ -614,58 +613,71 @@ export class html{
                                 <thead>
                                     <tr>
                                         <th class="text-center width-100" scope="col">
-                                            Object 
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Tab
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Read
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Create
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Edit
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Delete
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            View All Records
-                                        </th>
-                                        <th class="text-center" scope="col">
-                                            Modify All Records
-                                        </th>
-                                </tr>
+                                            Permission 
+                                        </th>`;
+
+                                        this.resetColumnColor();
+
+                                        this.pageView.selectedPermissions.forEach(permission =>{
+                                            toReturn += `
+                                                <th class="text-center view-edit-${this.getColumnColor()}" scope="col">
+                                                    ${permission.label}
+                                                    <br/>
+                                                    ${permission.api}
+                                                    <br/>
+                                                    <button
+                                                        type="button" 
+                                                        class="icon-remove button-remove-permission"
+                                                        data-permission="${permission.api}"
+                                                    >
+                                                        x
+                                                    </button>
+                                                </th>
+                                            `;
+
+                                            this.setColumnColor();
+                                        });
+
+                                        let mapOptions = new Map();
+                                        mapOptions.set('read', 'Read');
+                                        mapOptions.set('create', 'Create');
+                                        mapOptions.set('edit', 'Edit');
+                                        mapOptions.set('delete', 'Delete');
+                                        mapOptions.set('viewAll', 'View All');
+                                        mapOptions.set('modifyAll', 'Modify All');
+                                        
+                                    toReturn += `</tr>
                             </thead>
                             <tbody>
-                                <tr class="slds-hint-parent" scope="row">
-                                    <td class="width-100">
-                                        ${object}
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-1">
-                                        <input data-field="asd.asd" data-permission="Opportunity_products" data-type="read" type="checkbox" class="input-checkbox">
-                                    </td>
-                                </tr>
+                                <tr class="slds-hint-parent" scope="row">`;
+
+                                this.resetColumnColor();
+
+                                for(let [key, value] of mapOptions){
+                                    toReturn += 
+                                        `<td class="width-100">
+                                            ${value}
+                                        </td>`;
+                                        
+                                    this.pageView.selectedPermissions.forEach(permission =>{
+                                        toReturn += `
+                                            <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                                <input 
+                                                    data-permission="${permission.id}" 
+                                                    data-id="${this.pageView.objectValues.get(object).get(permission.id).id}"
+                                                    data-type="${key}"
+                                                    data-object="${object}"
+                                                    type="checkbox"
+                                                    class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
+                                                    ${this.pageView.objectValues.get(object).get(permission.id)[key] ? 'checked' : ''}
+                                                />
+                                            </td>`;
+                                    });
+
+                                    toReturn += `</tr>`;
+                                }
+
+                                toReturn += `
                             </tbody>
                         </table>
                     </div>
@@ -715,6 +727,18 @@ export class html{
         }
 
         return toReturn;
+    }
+
+    resetColumnColor(){
+        this.columnColor = 1;
+    }
+
+    setColumnColor(){
+        this.columnColor = this.columnColor === 1 ? 2 : 1;
+    }
+
+    getColumnColor(){
+        return this.columnColor;
     }
 
 }

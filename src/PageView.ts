@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as vscode from 'vscode';
 import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
@@ -10,7 +11,8 @@ enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
 const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
-const DEFAULT_FILTER_SOQL = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
+const DEFAULT_FILTER_SOQL_PARENT = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
+const DEFAULT_FILTER_SOQL = " AND ( NOT Name LIKE 'X00e%' ) ";
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -24,28 +26,29 @@ export class PageView{
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
-	public permissionsToSelect: Array<any>;
-	public selectedPermissions: Array<any>;
-	public selectedFields: Array<any>;
-	public fieldValues: Map<any, any>;
-	public objectValues: Map<any, any>;
-	public listOrgs: Array<string>;
-	public isConnected: boolean;
-	public org: string;
+	private tabFocus: string;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
-	public selectedObject: string;
-	public selectedField: string;
+	public fieldValues: Map<any, any>;
+	public isConnected: boolean;
 	public isLoading: boolean;
-	public loadingText: string;
-	public pageMessageIsActive: boolean;
-	public pageMessageType: string;
-	public pageMessageText: Array<string>;
-	public showModal: boolean;
-	public listObject: Array<any>;
-	public objectToDescribe: string;
 	public listFieldObject: Array<any>;
+	public listObject: Array<any>;
+	public listOrgs: Array<string>;
 	public listSelectedObjects: Array<string>;
+	public loadingText: string;
+	public objectToDescribe: string;
+	public objectValues: Map<any, any>;
+	public org: string;
+	public pageMessageIsActive: boolean;
+	public pageMessageText: Array<string>;
+	public pageMessageType: string;
+	public permissionsToSelect: Array<any>;
+	public selectedField: string;
+	public selectedFields: Array<any>;
+	public selectedObject: string;
+	public selectedPermissions: Array<any>;
+	public showModal: boolean;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -82,7 +85,7 @@ export class PageView{
 		this.objectValues = new Map();
 		this.permissionsMap = new Map();
 		this.isConnected = false;
-		this.selectedObject = '';
+		this.selectedObject = 'Account';
 		this.isLoading = true;
 		this.pageMessageIsActive = false;
 		this.pageMessageType = '';
@@ -91,9 +94,6 @@ export class PageView{
 		this.listObject = new Array();
 		this.listFieldObject = new Array();
 		this.listSelectedObjects = new Array();
-
-		// TODO: remove after tests
-		this.listSelectedObjects = new Array('Account', 'Opportunity', 'Lead'); 
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -193,7 +193,7 @@ export class PageView{
 
 						return;
 					case 'SAVE-OBJECT':
-						this.saveObject(message.text);
+						this.saveObject(message.text.object, JSON.parse(message.text.values));
 
 						return;
 					case 'CLEAR':
@@ -480,7 +480,7 @@ export class PageView{
 			WHERE Parent.IsCustom = true
 				AND ParentId IN ('${permissions.join("','")}') 
 				AND Field IN ('${fields.join("','")}')
-				${DEFAULT_FILTER_SOQL}
+				${DEFAULT_FILTER_SOQL_PARENT}
 		`)
 		.then(resultFields =>{
 			resultFields.records.forEach((fieldPermission: any) =>{
@@ -513,6 +513,8 @@ export class PageView{
 
 			this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
 			this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
+
+			this.tabFocus = 'Field';
 
 			this._update();
 		})
@@ -656,7 +658,7 @@ export class PageView{
 			FROM FieldPermissions 
 			WHERE Parent.IsCustom = true
 				AND Field IN ('${this.selectedFields.join("','")}')
-				${DEFAULT_FILTER_SOQL}
+				${DEFAULT_FILTER_SOQL_PARENT}
 		`)
 		.then(resultFields =>{
 			resultFields.records.forEach((fieldPermission: any) =>{
@@ -705,60 +707,90 @@ export class PageView{
 	}
 
 	private addObject(object: string){
-		if(object && !this.listSelectedObjects.includes(object)){
-			this.listSelectedObjects.push(object);
+		this.createMessage(false);
 
-			this.objectValues.set(object, {
-				'tab':{
-					PermissionSetTabSetting: false
-				},
-				'object':{
-					PermissionSetTabSetting: false,
-					PermissionsRead: false,
-					PermissionsCreate: false,
-					PermissionsEdit: false,
-					PermissionsDelete: false,
-					PermissionsViewAllRecords: false,
-					PermissionsModifyAllRecords: false
-				}
+		if(object){
+			if(!this.listObject.includes(object)){
+				this.createMessage(true, MESSAGE_TYPE.INFO, `Object ${object} not found`);
+				
+				this._update();
+			}else if(!this.listSelectedObjects.includes(object)){
+				this.listSelectedObjects.push(object);
+				
+				this.getObjectPermissions(object);
+			}
+		}
+	}
+
+	private getObjectPermissions(object){
+		this.createMessage(false);
+		
+		this.selectedPermissions.forEach(permission =>{
+			let key1 = object;
+			let key2 = permission.id;
+
+			if(!this.objectValues.has(key1)){
+				this.objectValues.set(key1, new Map());
+			}
+
+			this.objectValues.get(key1).set(key2, {
+				id: null,
+				permissionId: permission.id,
+				read: false,
+				create: false,
+				edit: false,
+				delete: false,
+				viewAll: false,
+				modifyAll: false
 			});
+		});
 
-
-			// TODO: get object permission from sfdx
-			let q = `
-				SELECT Id
-					, Parent.Label
-					, Parent.Name
-					, ParentId
-					, PermissionsCreate
-					, PermissionsDelete
-					, PermissionsEdit
-					, PermissionsModifyAllRecords
-					, PermissionsRead
-					, PermissionsViewAllRecords
-					, SobjectType
-				FROM ObjectPermissions 
-				WHERE SobjectType = ${object}
-					AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}') 
-			`;
-
-
-			// TODO: get tab permission from sfdx
-			let q2 = `
-				SELECT Id
-				, Name
+		query(this.connection, 
+			`SELECT Id
 				, Parent.Label
 				, Parent.Name
 				, ParentId
+				, PermissionsCreate
+				, PermissionsDelete
+				, PermissionsEdit
+				, PermissionsModifyAllRecords
+				, PermissionsRead
+				, PermissionsViewAllRecords
 				, SobjectType
-				, Visibility
-				FROM PermissionSetTabSetting
-				WHERE SobjectType = ${object}
-				AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}') 
-			`;
+			FROM ObjectPermissions 
+			WHERE SobjectType = '${object}'
+				AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}')
+		`)
+		.then(result =>{
+			result.records.forEach((permission: any) =>{
+				let key1 = permission.SobjectType;
+				let key2 = permission.ParentId;
+
+				if(!this.objectValues.has(key1)){
+					this.objectValues.set(key1, new Map());
+				}
+
+				if(!this.objectValues.get(key1).has(key2)){
+					this.objectValues.get(key1).set(key2, {});
+				}
+
+				this.objectValues.get(key1).get(key2).id = permission.Id;
+				this.objectValues.get(key1).get(key2).permissionId = permission.ParentId;
+				this.objectValues.get(key1).get(key2).read = permission.PermissionsRead;
+				this.objectValues.get(key1).get(key2).create = permission.PermissionsCreate;
+				this.objectValues.get(key1).get(key2).edit = permission.PermissionsEdit;
+				this.objectValues.get(key1).get(key2).delete = permission.PermissionsDelete;
+				this.objectValues.get(key1).get(key2).viewAll = permission.PermissionsViewAllRecords;
+				this.objectValues.get(key1).get(key2).modifyAll = permission.PermissionsModifyAllRecords;
+			});
+			
+			this.tabFocus = object;
 
 			this._update();
-		}
+		})
+		.catch(error =>{
+			console.log('ERROR ', error);
+		});
 	}
 
 	private removeObject(object: string){
@@ -769,17 +801,17 @@ export class PageView{
 		}
 	}
 
-	private async createRecords(records: Array<any>): Promise<any>{
+	private async createRecords(records: Array<any>, object: string): Promise<any>{
 		if(records){
-			return await create(this.connection, 'FieldPermissions', records);
+			return await create(this.connection, object, records);
 		}else{
 			return null;
 		}
 	}
 
-	private async updateRecords(records: Array<any>): Promise<any>{
+	private async updateRecords(records: Array<any>, object: string): Promise<any>{
 		if(records){
-			return await update(this.connection, 'FieldPermissions', records);
+			return await update(this.connection, object, records);
 		}else{
 			return null;
 		}
@@ -797,6 +829,18 @@ export class PageView{
 
 		this._update();
 	}
+
+	private formatErrorMessage(error: any, name: string){
+		let messageToReturn = '';
+
+		if(error[0].statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'){
+			messageToReturn = `Object / Field (${name}) is invalid or is not updatable`;
+		}else{
+			messageToReturn = error[0].message;
+		}
+
+		return messageToReturn;
+	};
 
 	private saveFields(){
 		this.createMessage(false);
@@ -831,21 +875,9 @@ export class PageView{
 				}
 			}
 
-			const formatErrorMessage = function(record: any, error: any){
-				let messageToReturn = record.Field +': ';
-
-				if(error[0].statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'){
-					messageToReturn += 'Invalid field or is not updatable';
-				}else{
-					messageToReturn += error[0].message;
-				}
-
-				return messageToReturn;
-			};
-
 			let errorList = new Array();
 
-			await this.createRecords(listRecordsToCreate)
+			await this.createRecords(listRecordsToCreate, 'FieldPermissions')
 			.then((result: any) =>{
 				if(result){
 					let index = 0;
@@ -858,7 +890,7 @@ export class PageView{
 
 							this.fieldValues.get(key).id = item.id;
 						}else{
-							errorList.push(formatErrorMessage(record, item.errors));
+							errorList.push(this.formatErrorMessage(item.errors, record.Field));
 						}
 
 						index ++;
@@ -869,7 +901,7 @@ export class PageView{
 				errorList.push(error);
 			})
 			.finally(() =>{
-				this.updateRecords(listRecordsToUpdate)
+				this.updateRecords(listRecordsToUpdate, 'FieldPermissions')
 				.then((result: any) =>{
 					if(result){
 						let index = 0;
@@ -886,7 +918,7 @@ export class PageView{
 									}
 								}
 							}else{
-								errorList.push(formatErrorMessage(record, item.errors));
+								errorList.push(this.formatErrorMessage(item.errors, record.Field));
 							}
 		
 							index ++;
@@ -897,58 +929,121 @@ export class PageView{
 					errorList.push(error);
 				})
 				.finally(() =>{
-					if(errorList.length){
-						let newErrorList = new Array();
-
-						errorList.forEach(error =>{
-							if(!newErrorList.includes(error)){
-								newErrorList.push(error);
-							}
-						});
-
-						this.createMessage(true, MESSAGE_TYPE.ERROR, newErrorList);
-					}else{
-						this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
-					}
-
-					this._update();
+					this.finallyDML(errorList);
 				});
 			});
 		});
 	}
 
-	private saveObject(object: string){
-		// TODO: save object in two objects: ObjectPermissions / PermissionSetTabSetting
+	private finallyDML(errorList: Array<string>){
+		if(errorList.length){
+			let newErrorList = new Array();
 
+			errorList.forEach(error =>{
+				if(!newErrorList.includes(error)){
+					newErrorList.push(error);
+				}
+			});
 
-		// let record = {
-		// 	PermissionsRead: false,
-		// 	PermissionsCreate: false,
-		// 	PermissionsEdit: false,
-		// 	PermissionsDelete: false,
-		// 	PermissionsViewAllRecords: false,
-		// 	PermissionsModifyAllRecords: false,
-		// 	ParentId: value.permissionId,
-		// 	SObjectType: object
-		// };
-		
-		// return await create(this.connection, 'ObjectPermissions', [record]);
-		
+			this.createMessage(true, MESSAGE_TYPE.ERROR, newErrorList);
 
+			this._update();
+		}
+	}
 
-		// visibility
-		// DefaultOff
-		// DefaultOn
-		// if neither = DELETE record
-		
-		// let record = {
-			// Name: object,
-		// 	Visibility: false,
-		// 	ParentId: value.permissionId,
-		// 	SObjectType: value.field.split('.')[0]
-		// };
+	private successMessage(){
+		this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
+	}
 
-		// return await create(this.connection, 'PermissionSetTabSetting', [record]);
+	private saveObject(object: string, values: Array<any>){
+		let listToCreate = new Array();
+		let listToUpdate = new Array();
+
+		values.forEach(value =>{
+			let record = {};
+			record.Id = value.id;
+			record.ParentId = value.permissionId;
+			record.SObjectType = object;
+			record.PermissionsRead = value.read;
+			record.PermissionsCreate = value.create;
+			record.PermissionsEdit = value.edit;
+			record.PermissionsDelete = value.delete;
+			record.PermissionsViewAllRecords = value.viewAll;
+			record.PermissionsModifyAllRecords = value.modifyAll;
+
+			if(record.Id){
+				listToUpdate.push(record);
+			}else{
+				let allFalse = true;
+
+				new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
+				.forEach(field =>{
+					if(value[field]){
+						allFalse = false;
+					}
+				});
+
+				if(!allFalse){
+					listToCreate.push(record);
+				}
+			}
+		});
+
+		let errorList = new Array();
+
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving...',
+		}, async (progress) => {
+			await this.createRecords(listToCreate, 'ObjectPermissions')
+			.then((resultCreate: any) =>{
+				if(resultCreate){
+					let index = 0;
+					
+					resultCreate.forEach((item: any) =>{
+						let record = listToCreate[index];
+						
+						if(item.success){
+							this.objectValues.get(object).get(record.ParentId).id = item.id;
+						}else{
+							errorList.push(this.formatErrorMessage(item.errors, object));
+						}
+
+						index ++;
+					});
+				}
+			})
+			.catch(errorCreate =>{
+				errorList.push(errorCreate);
+			})
+			.finally(() =>{
+				this.updateRecords(listToUpdate, 'ObjectPermissions')
+				.then((resultUpdate: any) =>{
+					if(resultUpdate){
+						let index = 0;
+						
+						resultUpdate.forEach((item: any) =>{
+							if(!item.success){
+								errorList.push(this.formatErrorMessage(item.errors, object));
+							}
+
+							index ++;
+						});
+					}
+				})
+				.catch(errorUpdate =>{
+					errorList.push(errorUpdate);
+				})
+				.finally(() =>{
+					if(errorList.length){
+						this.finallyDML(errorList);
+					}else{
+						this.getObjectPermissions(object);
+						this.successMessage();
+					}
+				});
+			});
+		});
 	}
 
 	private createMessage(isActive: boolean, type: MESSAGE_TYPE = MESSAGE_TYPE.INFO, message?: any){
@@ -1049,6 +1144,11 @@ export class PageView{
 		this._panel.webview.postMessage({
 			command: 'JS-UPDATE-OBJECT-LIST'
 			, text: this.listObject
+		});
+
+		this._panel.webview.postMessage({
+			command: 'SET-TAB-FOCUS'
+			, text: this.tabFocus || 'Field'
 		});
 	}
 }

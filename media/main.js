@@ -5,9 +5,6 @@
   var listObject;
   var lastValue = "";
   var idTimeout;
-  var ignoreKeys = new Array();
-  ignoreKeys.push(8);
-  ignoreKeys.push(46);
 
   window.addEventListener('message', event => {
     const message = event.data;
@@ -17,11 +14,14 @@
         listObject = message.text;
 
         break;
+      case 'SET-TAB-FOCUS':
+        setTabFocus(message.text);
+        break;
     }
   });
 
   var autocompleteObject = function(event){
-    if(listObject && !ignoreKeys.includes(event.keyCode)){
+    if(listObject && event.keyCode >= 65 && event.keyCode <= 122){
         lastValue = event.target.value;
 
         if(lastValue.length >= 3){
@@ -38,7 +38,7 @@
                         lastValue = lastValue.substring(0, lastValue.length);
                     }
                 });
-            }, 600);
+            }, 400);
         }
       }
   };
@@ -93,7 +93,6 @@
       });
     });
   });
-
 
   document.querySelectorAll(".button-remove-field").forEach(item =>{
     item.addEventListener('click', (event) =>{
@@ -237,27 +236,29 @@
   
   document.querySelectorAll(".input-tab").forEach(item =>{
     item.addEventListener('click', (event) =>{
-        let id = event.target.dataset.id;
-        
-        Array.from(document.querySelectorAll('.li-tab')).forEach(li =>{
-            if(li.dataset.id === id){
-                li.classList.add('slds-is-active');
-            }else{
-              li.classList.remove('slds-is-active');
-            }
-        });
-        
-        Array.from(document.querySelectorAll('.tab-content')).forEach(content =>{
-          if(content.dataset.id === id){
-                content.classList.remove('slds-hide');
-                content.classList.add('slds-show');
-            }else{
-              content.classList.remove('slds-show');
-                content.classList.add('slds-hide');
-              }
-            });
+        setTabFocus(event.target.dataset.id);
     });
   });
+
+  function setTabFocus(id){
+    Array.from(document.querySelectorAll('.li-tab')).forEach(li =>{
+      if(li.dataset.id === id){
+          li.classList.add('slds-is-active');
+      }else{
+        li.classList.remove('slds-is-active');
+      }
+    });
+  
+    Array.from(document.querySelectorAll('.tab-content')).forEach(content =>{
+      if(content.dataset.id === id){
+          content.classList.remove('slds-hide');
+          content.classList.add('slds-show');
+      }else{
+        content.classList.remove('slds-show');
+        content.classList.add('slds-hide');
+      }
+    });
+  }
   
   document.querySelector('#button-add-object')?.addEventListener('click', () =>{
     let object = document.querySelector("#input-object").value;
@@ -282,11 +283,91 @@
   document.querySelectorAll(".button-save-object").forEach(item =>{
     item.addEventListener('click', (event) =>{
         let object = event.target.dataset.object;
+        let mapValues = new Map();
+        let listValues = new Array();
+
+        document.querySelectorAll(`.input-checkbox-object-${object}`).forEach(item =>{
+          let id = item.dataset.id === 'null' ? null : item.dataset.id;
+          let permissionId = item.dataset.permission;
+
+          if(!mapValues.has(permissionId)){
+            mapValues.set(permissionId, {});
+            mapValues.get(permissionId).id = id;
+            mapValues.get(permissionId).permissionId = permissionId;
+          }
+
+          mapValues.get(permissionId)[item.dataset.type] = item.checked;
+        });
+
+        for(let [key, value] of mapValues){
+          listValues.push(value);
+        }
 
         vscode.postMessage({
           command: 'SAVE-OBJECT',
-          text: object
+          text: { 'object': object, 'values': JSON.stringify(listValues) }
         });
+    });
+  });
+
+  document.querySelectorAll(".input-checkbox-object").forEach(item =>{
+    item.addEventListener('click', (event) =>{
+      let object = event.target.dataset.object;
+      let permission = event.target.dataset.permission;
+      let type = event.target.dataset.type;
+      let isChecked = event.target.checked;
+
+      let changeValue = function(type){
+        document.querySelector(`.input-checkbox-object-${object}-${permission}-${type}`).checked = isChecked;
+      };
+
+      if(isChecked){
+        switch(type){
+          case 'create':
+            changeValue('read');
+            break;
+          case 'edit':
+            changeValue('read');
+            break;
+          case 'delete':
+            changeValue('read');
+            changeValue('edit');
+            break;
+          case  'viewAll':
+            changeValue('read');
+            break;
+          case 'modifyAll':
+            changeValue('read');
+            changeValue('edit');
+            changeValue('delete');
+            changeValue('viewAll');
+            break;
+          default:
+            break;
+        }
+      }else{
+        switch(type){
+          case 'read':
+            changeValue('create');
+            changeValue('edit');
+            changeValue('delete');
+            changeValue('viewAll');
+            changeValue('modifyAll');
+            break;
+          case 'edit':
+            changeValue('delete');
+            changeValue('modifyAll');
+            break;
+          case 'delete':
+            changeValue('modifyAll');
+            break;
+          case 'viewAll':
+            changeValue('modifyAll');
+            break;
+          default:
+            break;
+        }
+      }
     });
   });
 
