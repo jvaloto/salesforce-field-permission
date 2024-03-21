@@ -220,6 +220,10 @@ export class PageView{
 						this.removeObject(message.text);
 
 						return;
+					case 'SET-TAB-FOCUS':
+						this.setTabFocus(message.text);
+
+						break;
 				}
 			},
 			null,
@@ -380,7 +384,7 @@ export class PageView{
 					listIdPermission.push(permission.id);
 				});
 
-				this.addMetadata([keyField], listIdPermission);
+				this.addMetadata([keyField], listIdPermission, true);
 			}
 		}
 	}
@@ -459,7 +463,7 @@ export class PageView{
 		this.addMetadata(listFields, []);
 	}
 
-	private addMetadata(fields: Array<string>, permissions: Array<string>, callback?: function){
+	private addMetadata(fields: Array<string>, permissions: Array<string>, isSetFocus: boolean = false){
 		if(fields && fields.length){
 			if(!permissions.length){
 				permissions = new Array();
@@ -515,10 +519,8 @@ export class PageView{
 				this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
 				this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
 
-				this.tabFocus = 'Field';
-
-				if(callback){
-					callback();
+				if(isSetFocus){
+					this.setTabFocus('Field');
 				}
 
 				this._update();
@@ -526,8 +528,6 @@ export class PageView{
 			.catch(errorFields =>{
 				this.setError(errorFields);
 			});
-		}else if(callback){
-			callback();
 		}
 	}
 
@@ -727,12 +727,12 @@ export class PageView{
 			}else if(!this.listSelectedObjects.includes(object)){
 				this.listSelectedObjects.push(object);
 				
-				this.getObjectPermissions(object);
+				this.getObjectPermissions(object, true);
 			}
 		}
 	}
 
-	private getObjectPermissions(object?: string){
+	private getObjectPermissions(object?: string, isSetFocus: boolean=false){
 		this.createMessage(false);
 
 		let objects = new Array();
@@ -804,7 +804,9 @@ export class PageView{
 				this.objectValues.get(key1).get(key2).modifyAll = permission.PermissionsModifyAllRecords;
 			});
 			
-			this.tabFocus = object;
+			if(isSetFocus){
+				this.setTabFocus(object);
+			}
 
 			this._update();
 		})
@@ -819,6 +821,12 @@ export class PageView{
 			
 			this._update();
 		}
+	}
+
+	private setTabFocus(tab: string){
+		this.tabFocus = tab;
+
+		this._update();
 	}
 
 	private async createRecords(records: Array<any>, object: string): Promise<any>{
@@ -1058,7 +1066,8 @@ export class PageView{
 					if(errorList.length){
 						this.finallyDML(errorList);
 					}else{
-						this.getObjectPermissions(object);
+						this.getObjectPermissions(object, true);
+						
 						this.successMessage();
 					}
 				});

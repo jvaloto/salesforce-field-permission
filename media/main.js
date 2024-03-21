@@ -20,28 +20,36 @@
     }
   });
 
-  var autocompleteObject = function(event){
+  const clearTime = function(){
+    if(idTimeout){
+      clearTimeout(idTimeout);
+    }
+  }
+
+  const autocompleteObject = function(event){
     if(listObject && event.keyCode >= 65 && event.keyCode <= 122){
         lastValue = event.target.value;
 
-        if(lastValue.length >= 3){
-            if(idTimeout){
-              clearTimeout(idTimeout);
-            }
+        if(lastValue.length >= 1){
+          clearTime();
             
-            idTimeout = setTimeout(() =>{
-              listObject.forEach(object =>{
-                    if(object.toUpperCase().startsWith(lastValue.toUpperCase())){
-                        event.target.value = object;
-                        event.target.setSelectionRange(lastValue.length, object.length);
-                        
-                        lastValue = lastValue.substring(0, lastValue.length);
-                    }
-                });
-            }, 400);
+          idTimeout = setTimeout(() =>{
+            listObject.forEach(object =>{
+                  if(object.toUpperCase().startsWith(lastValue.toUpperCase())){
+                      event.target.value = object;
+                      event.target.setSelectionRange(lastValue.length, object.length);
+                      
+                      lastValue = lastValue.substring(0, lastValue.length);
+                  }
+              });
+          }, 500);
         }
       }
   };
+
+  document.querySelector('#input-object')?.addEventListener('focusout', (event) =>{
+    clearTime();
+  });
 
   document.querySelector('#input-object')?.addEventListener('keyup', autocompleteObject, event);
   
@@ -236,7 +244,14 @@
   
   document.querySelectorAll(".input-tab").forEach(item =>{
     item.addEventListener('click', (event) =>{
-        setTabFocus(event.target.dataset.id);
+      let object = event.target.dataset.id;
+
+      setTabFocus(object);
+      
+      vscode.postMessage({
+        command: 'SET-TAB-FOCUS',
+        text: object
+      });
     });
   });
 
