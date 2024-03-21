@@ -543,30 +543,32 @@ export class html{
                             for(let x in this.pageView.selectedPermissions){
                                 let recordValue = this.pageView.fieldValues.get(this.pageView.selectedPermissions[x].api +'.'+ field);
 
-                                toReturn += `
-                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
-                                        <input 
-                                            data-field="${field}" 
-                                            data-permission="${this.pageView.selectedPermissions[x].api}" 
-                                            data-type="read" 
-                                            type="checkbox" 
-                                            class="input-checkbox"
-                                            ${recordValue.read ? 'checked' : ''}
-                                        />
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
-                                        <input 
-                                            data-field="${field}" 
-                                            data-permission="${this.pageView.selectedPermissions[x].api}" 
-                                            data-type="edit" 
-                                            type="checkbox" 
-                                            class="input-checkbox"
-                                            ${recordValue.edit ? 'checked' : ''}
-                                        />
-                                    </td>
-                                `;
+                                if(recordValue){
+                                    toReturn += `
+                                        <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                            <input 
+                                                data-field="${field}" 
+                                                data-permission="${this.pageView.selectedPermissions[x].api}" 
+                                                data-type="read" 
+                                                type="checkbox" 
+                                                class="input-checkbox"
+                                                ${recordValue.read ? 'checked' : ''}
+                                            />
+                                        </td>
+                                        <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                            <input 
+                                                data-field="${field}" 
+                                                data-permission="${this.pageView.selectedPermissions[x].api}" 
+                                                data-type="edit" 
+                                                type="checkbox" 
+                                                class="input-checkbox"
+                                                ${recordValue.edit ? 'checked' : ''}
+                                            />
+                                        </td>
+                                    `;
 
-                                this.setColumnColor();
+                                    this.setColumnColor();
+                                }
                             }
                 
                             toReturn += `
@@ -658,21 +660,23 @@ export class html{
                                         `<td class="width-100">
                                             ${value}
                                         </td>`;
-                                        
-                                    this.pageView.selectedPermissions.forEach(permission =>{
-                                        toReturn += `
-                                            <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
-                                                <input 
-                                                    data-permission="${permission.id}" 
-                                                    data-id="${this.pageView.objectValues.get(object).get(permission.id).id}"
-                                                    data-type="${key}"
-                                                    data-object="${object}"
-                                                    type="checkbox"
-                                                    class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
-                                                    ${this.pageView.objectValues.get(object).get(permission.id)[key] ? 'checked' : ''}
-                                                />
-                                            </td>`;
-                                    });
+
+                                        if(this.pageView.objectValues.size){
+                                            this.pageView.selectedPermissions.forEach(permission =>{
+                                                toReturn += `
+                                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                                        <input 
+                                                            data-permission="${permission.id}" 
+                                                            data-id="${this.pageView.objectValues.get(object).get(permission.id).id}"
+                                                            data-type="${key}"
+                                                            data-object="${object}"
+                                                            type="checkbox"
+                                                            class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
+                                                            ${this.pageView.objectValues.get(object).get(permission.id)[key] ? 'checked' : ''}
+                                                        />
+                                                    </td>`;
+                                            });
+                                        }
 
                                     toReturn += `</tr>`;
                                 }

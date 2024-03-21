@@ -459,68 +459,76 @@ export class PageView{
 		this.addMetadata(listFields, []);
 	}
 
-	private addMetadata(fields: Array<string>, permissions: Array<string>){
-		if(!permissions.length){
-			permissions = new Array();
+	private addMetadata(fields: Array<string>, permissions: Array<string>, callback?: function){
+		if(fields && fields.length){
+			if(!permissions.length){
+				permissions = new Array();
 
-			this.selectedPermissions.forEach(permission =>{
-				permissions.push(permission.id);
-			});
-		}
-
-		query(this.connection, `
-			SELECT Id
-				, Field
-				, Parent.Name
-				, ParentId
-				, PermissionsEdit 
-				, PermissionsRead
-				, SobjectType
-			FROM FieldPermissions 
-			WHERE Parent.IsCustom = true
-				AND ParentId IN ('${permissions.join("','")}') 
-				AND Field IN ('${fields.join("','")}')
-				${DEFAULT_FILTER_SOQL_PARENT}
-		`)
-		.then(resultFields =>{
-			resultFields.records.forEach((fieldPermission: any) =>{
-				this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
-					id: fieldPermission.Id, 
-					permission: fieldPermission.Parent.Name,
-					permissionId: fieldPermission.ParentId,
-					field: fieldPermission.Field, 
-					read: fieldPermission.PermissionsRead, 
-					edit: fieldPermission.PermissionsEdit
-				});
-			});
-
-			fields.forEach(field =>{
 				this.selectedPermissions.forEach(permission =>{
-					let keyValue = permission.api +'.'+ field;
-
-					if(!this.fieldValues.has(keyValue)){
-						this.fieldValues.set(keyValue, {
-							id: null, 
-							permission: permission.api, 
-							permissionId: permission.id,
-							field: field, 
-							read: false, 
-							edit: false
-						});
-					}
+					permissions.push(permission.id);
 				});
+			}
+
+			query(this.connection, `
+				SELECT Id
+					, Field
+					, Parent.Name
+					, ParentId
+					, PermissionsEdit 
+					, PermissionsRead
+					, SobjectType
+				FROM FieldPermissions 
+				WHERE Parent.IsCustom = true
+					AND ParentId IN ('${permissions.join("','")}') 
+					AND Field IN ('${fields.join("','")}')
+					${DEFAULT_FILTER_SOQL_PARENT}
+			`)
+			.then(resultFields =>{
+				resultFields.records.forEach((fieldPermission: any) =>{
+					this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
+						id: fieldPermission.Id, 
+						permission: fieldPermission.Parent.Name,
+						permissionId: fieldPermission.ParentId,
+						field: fieldPermission.Field, 
+						read: fieldPermission.PermissionsRead, 
+						edit: fieldPermission.PermissionsEdit
+					});
+				});
+
+				fields.forEach(field =>{
+					this.selectedPermissions.forEach(permission =>{
+						let keyValue = permission.api +'.'+ field;
+
+						if(!this.fieldValues.has(keyValue)){
+							this.fieldValues.set(keyValue, {
+								id: null, 
+								permission: permission.api, 
+								permissionId: permission.id,
+								field: field, 
+								read: false, 
+								edit: false
+							});
+						}
+					});
+				});
+
+				this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
+				this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
+
+				this.tabFocus = 'Field';
+
+				if(callback){
+					callback();
+				}
+
+				this._update();
+			})
+			.catch(errorFields =>{
+				this.setError(errorFields);
 			});
-
-			this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
-			this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
-
-			this.tabFocus = 'Field';
-
-			this._update();
-		})
-		.catch(errorFields =>{
-			this.setError(errorFields);
-		});
+		}else if(callback){
+			callback();
+		}
 	}
 
 	private removeField(field: string){
@@ -613,6 +621,8 @@ export class PageView{
 				});
 				
 				this.addMetadata(listFields, [permissionRecord.id]);
+
+				this.getObjectPermissions();
 			}else{
 				this._update();
 			}
@@ -722,26 +732,36 @@ export class PageView{
 		}
 	}
 
-	private getObjectPermissions(object){
+	private getObjectPermissions(object?: string){
 		this.createMessage(false);
+
+		let objects = new Array();
+
+		if(object){
+			objects.push(object);
+		}else{
+			objects = this.listSelectedObjects;
+		}
 		
 		this.selectedPermissions.forEach(permission =>{
-			let key1 = object;
-			let key2 = permission.id;
-
-			if(!this.objectValues.has(key1)){
-				this.objectValues.set(key1, new Map());
-			}
-
-			this.objectValues.get(key1).set(key2, {
-				id: null,
-				permissionId: permission.id,
-				read: false,
-				create: false,
-				edit: false,
-				delete: false,
-				viewAll: false,
-				modifyAll: false
+			objects.forEach(object =>{
+				let key1 = object;
+				let key2 = permission.id;
+				
+				if(!this.objectValues.has(key1)){
+					this.objectValues.set(key1, new Map());
+				}
+				
+				this.objectValues.get(key1).set(key2, {
+					id: null,
+					permissionId: permission.id,
+					read: false,
+					create: false,
+					edit: false,
+					delete: false,
+					viewAll: false,
+					modifyAll: false
+				});
 			});
 		});
 
@@ -758,7 +778,7 @@ export class PageView{
 				, PermissionsViewAllRecords
 				, SobjectType
 			FROM ObjectPermissions 
-			WHERE SobjectType = '${object}'
+			WHERE SobjectType IN ('${objects.join("','")}')
 				AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}')
 		`)
 		.then(result =>{
