@@ -16,6 +16,7 @@
         break;
       case 'SET-TAB-FOCUS':
         setTabFocus(message.text);
+
         break;
     }
   });
@@ -24,10 +25,35 @@
     if(idTimeout){
       clearTimeout(idTimeout);
     }
-  }
+  };
+
+  const addObject = function(){
+    let object = document.querySelector("#input-object").value;
+    
+    vscode.postMessage({
+      command: 'ADD-OBJECT',
+      text: object
+    });
+  };
+
+  const addField = function(){
+    let object = document.querySelector("#input-object").value;
+
+    let field = document.querySelector("#input-field").value;
+
+    vscode.postMessage({
+      command: 'ADD-FIELD',
+      text: { 
+        object: object, 
+        field: field 
+      }
+    });
+  };
 
   const autocompleteObject = function(event){
-    if(listObject && event.keyCode >= 65 && event.keyCode <= 122){
+    if(event.keyCode === 13){
+      addObject();
+    }else if(listObject && event.keyCode >= 65 && event.keyCode <= 122){
         lastValue = event.target.value;
 
         if(lastValue.length >= 1){
@@ -120,17 +146,13 @@
   });
 
   document.querySelector('#button-add-field')?.addEventListener('click', () =>{
-    let object = document.querySelector("#input-object").value;
+    addField();
+  });
 
-    let field = document.querySelector("#input-field").value;
-
-    vscode.postMessage({
-      command: 'ADD-FIELD',
-      text: { 
-        object: object, 
-        field: field 
-      }
-    });
+  document.querySelector('#input-field')?.addEventListener('keyup', (event) =>{
+    if(event.keyCode === 13){
+      addField();
+    }
   });
 
   document.querySelector('#button-add-field-object')?.addEventListener('click', () =>{
@@ -273,15 +295,14 @@
         content.classList.add('slds-hide');
       }
     });
+
+    if(id === 'Field'){
+      document.querySelector('#input-field').focus();
+    }
   }
   
   document.querySelector('#button-add-object')?.addEventListener('click', () =>{
-    let object = document.querySelector("#input-object").value;
-    
-    vscode.postMessage({
-      command: 'ADD-OBJECT',
-      text: object
-    });
+    addObject();
   });
   
   document.querySelectorAll(".button-remove-object").forEach(item =>{
