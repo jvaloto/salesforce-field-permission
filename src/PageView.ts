@@ -27,6 +27,7 @@ export class PageView{
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
 	private tabFocus: string;
+	private isInputFieldFocus: boolean;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
 	public fieldValues: Map<any, any>;
@@ -373,6 +374,8 @@ export class PageView{
 		this.selectedObject = object;
 
 		if(object && field){
+			this.isInputFieldFocus = true;
+
 			let keyField = `${object}.${field}`;
 			
 			if(!this.selectedFields.filter(e => e === keyField).length){
@@ -589,32 +592,37 @@ export class PageView{
 	}
 
 	private addPermission(permission: any, isAddMetadata:boolean = true){
-		this.createMessage(false);
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding permission set...',
+		}, async (progress) => {
+			this.createMessage(false);
 
-		if(permission){
-			let permissionRecord = this.permissionsBase.filter((e) => e.api === permission)[0];
+			if(permission){
+				let permissionRecord = this.permissionsBase.filter((e) => e.api === permission)[0];
 
-			this.selectedPermissions.push(permissionRecord);
-			
-			this.permissionsToSelect = 
-				this.permissionsToSelect.filter((e) => e.api !== permission);
-
-			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
-
-			if(isAddMetadata){
-				let listFields = new Array();
+				this.selectedPermissions.push(permissionRecord);
 				
-				this.selectedFields.forEach(field =>{
-					listFields.push(field);
-				});
-				
-				this.addMetadata(listFields, [permissionRecord.id]);
+				this.permissionsToSelect = 
+					this.permissionsToSelect.filter((e) => e.api !== permission);
 
-				this.getObjectPermissions();
-			}else{
-				this._update();
+				this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
+
+				if(isAddMetadata){
+					let listFields = new Array();
+					
+					this.selectedFields.forEach(field =>{
+						listFields.push(field);
+					});
+					
+					this.addMetadata(listFields, [permissionRecord.id]);
+
+					this.getObjectPermissions();
+				}else{
+					this._update();
+				}
 			}
-		}
+		});
 	}
 
 	private removePermission(permission: string){
@@ -638,8 +646,8 @@ export class PageView{
 	private whereIsPermission(){
 		this.createMessage(false);
 
-		this.fieldValues = new Map();
 		let listPermissionsToFilter = new Array();
+		this.fieldValues = new Map();
 		this.selectedPermissions = new Array();
 		this.permissionsToSelect = new Array();
 		this.permissionsToSelect = [...this.permissionsBase];
@@ -705,19 +713,24 @@ export class PageView{
 	}
 
 	private addObject(object: string){
-		this.createMessage(false);
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding object...',
+		}, async (progress) => {
+			this.createMessage(false);
 
-		if(object){
-			if(!this.listObject.includes(object)){
-				this.createMessage(true, MESSAGE_TYPE.INFO, `Object ${object} not found`);
-				
-				this._update();
-			}else if(!this.listSelectedObjects.includes(object)){
-				this.listSelectedObjects.push(object);
-				
-				this.getObjectPermissions(object, true);
+			if(object){
+				if(!this.listObject.includes(object)){
+					this.createMessage(true, MESSAGE_TYPE.INFO, `Object ${object} not found`);
+					
+					this._update();
+				}else if(!this.listSelectedObjects.includes(object)){
+					this.listSelectedObjects.push(object);
+					
+					this.getObjectPermissions(object, true);
+				}
 			}
-		}
+		});
 	}
 
 	private getObjectPermissions(object?: string, isSetFocus: boolean=false){
@@ -1173,6 +1186,13 @@ export class PageView{
 			command: 'SET-TAB-FOCUS'
 			, text: this.tabFocus || 'Field'
 		});
+
+		this._panel.webview.postMessage({
+			command: 'SET-INPUT-FIELD-FOCUS'
+			, text: this.isInputFieldFocus
+		});
+
+		this.isInputFieldFocus = false;
 	}
 }
 

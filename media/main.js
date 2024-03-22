@@ -5,6 +5,7 @@
   var listObject;
   var lastValue = "";
   var idTimeout;
+  var isSetInputFieldFocus = false;
 
   window.addEventListener('message', event => {
     const message = event.data;
@@ -16,6 +17,10 @@
         break;
       case 'SET-TAB-FOCUS':
         setTabFocus(message.text);
+
+        break;
+      case 'SET-INPUT-FIELD-FOCUS':
+        isSetInputFieldFocus = message.text;
 
         break;
     }
@@ -319,7 +324,7 @@
 
     if(inputObjectFieldDescribe){
       inputObjectFieldDescribe.focus();
-    }else if(id === 'Field'){
+    }else if(isSetInputFieldFocus && id === 'Field'){
       document.querySelector('#input-field').focus();
     }
   }
