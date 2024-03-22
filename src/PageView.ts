@@ -85,7 +85,7 @@ export class PageView{
 		this.objectValues = new Map();
 		this.permissionsMap = new Map();
 		this.isConnected = false;
-		this.selectedObject = 'Account';
+		this.selectedObject = '';
 		this.isLoading = true;
 		this.pageMessageIsActive = false;
 		this.pageMessageType = '';
@@ -406,22 +406,7 @@ export class PageView{
 
 		this.createMessage(false);
 
-		if(this.showModal){
-			if(this.listObject.length){
-				this._update();
-			}else{
-				vscode.window.withProgress({
-					location: vscode.ProgressLocation.Notification,
-					title: 'Loading objects...',
-				}, async (progress) => {
-					await this.getListObjects();
-
-					this._update();
-				});
-			}
-		}else{
-			this._update();
-		}
+		this._update();
 	}
 
 	private getFieldsFromObject(object: string){
@@ -446,21 +431,26 @@ export class PageView{
 	}
 
 	private addListFields(fields: Array<any>){
-		let listFields = new Array();
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding fields...',
+		}, async (progress) => {
+			let listFields = new Array();
 
-		fields.forEach(field =>{
-			let newField = this.objectToDescribe +'.'+ field;
+			fields.forEach(field =>{
+				let newField = this.objectToDescribe +'.'+ field;
 
-			if(!this.selectedFields.includes(newField)){
-				listFields.push(newField);
+				if(!this.selectedFields.includes(newField)){
+					listFields.push(newField);
 
-				this.selectedFields.push(newField);
-			}
+					this.selectedFields.push(newField);
+				}
+			});
+
+			this.showModal = false;
+
+			this.addMetadata(listFields, []);
 		});
-
-		this.showModal = false;
-
-		this.addMetadata(listFields, []);
 	}
 
 	private addMetadata(fields: Array<string>, permissions: Array<string>, isSetFocus: boolean = false){
@@ -537,8 +527,6 @@ export class PageView{
 		this.selectedPermissions.forEach(permission =>{
 			this.fieldValues.delete(permission.api +'.'+ field);
 		});
-
-		this._update();
 	}
 
 	private setValue(checked: boolean, type: string, permission: string, field: string){
@@ -818,6 +806,8 @@ export class PageView{
 	private removeObject(object: string){
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
+
+			this.setTabFocus('Field');
 			
 			this._update();
 		}
@@ -872,8 +862,6 @@ export class PageView{
 
 	private saveFields(){
 		this.createMessage(false);
-
-		this._update();
 
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
@@ -957,7 +945,13 @@ export class PageView{
 					errorList.push(error);
 				})
 				.finally(() =>{
-					this.finallyDML(errorList);
+					if(errorList.length){
+						this.finallyDML(errorList);
+					}else{
+						this.successMessage();
+
+						this._update();
+					}
 				});
 			});
 		});

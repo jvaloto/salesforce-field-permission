@@ -50,13 +50,30 @@
     });
   };
 
-  const autocompleteObject = function(event){
+  const getFields = function(){
+    let object = document.querySelector("#input-object-describe").value;
+
+    vscode.postMessage({
+      command: 'DESCRIBE-FIELDS'
+      , text: object
+    });
+  };
+
+  const autocompleteObject = function(event, type){
+    console.log(type);
+
     if(event.keyCode === 13){
-      addObject();
+      clearTime();
+      
+      if(type === 'add-object'){
+        addObject();
+      }else if(type === 'get-fields'){
+        getFields();
+      }
     }else if(listObject && event.keyCode >= 65 && event.keyCode <= 122){
         lastValue = event.target.value;
 
-        if(lastValue.length >= 1){
+        if(lastValue.length >= 2){
           clearTime();
             
           idTimeout = setTimeout(() =>{
@@ -77,9 +94,13 @@
     clearTime();
   });
 
-  document.querySelector('#input-object')?.addEventListener('keyup', autocompleteObject, event);
+  document.querySelector('#input-object')?.addEventListener('keyup', (event) =>{
+    autocompleteObject(event, 'add-object');
+  });
   
-  document.querySelector('#input-object-describe')?.addEventListener('keyup', autocompleteObject, event);
+  document.querySelector('#input-object-describe')?.addEventListener('keyup', (event) =>{
+    autocompleteObject(event, 'get-fields');
+  });
 
   document.querySelector('#input-save-default-org')?.addEventListener('change', (event) =>{
     let checked = event.target.checked;
@@ -136,6 +157,9 @@
         command: 'REMOVE-FIELD',
         text: field
       });
+
+
+      document.querySelector(`tr[data-field="tr-${field}"]`).classList.add("hidden");
     });
   });
 
@@ -170,12 +194,7 @@
   });
 
   document.querySelector('#button-set-object')?.addEventListener('click', () =>{
-    let object = document.querySelector("#input-object-describe").value;
-
-    vscode.postMessage({
-      command: 'DESCRIBE-FIELDS'
-      , text: object
-    });
+    getFields();
   });
 
   document.querySelectorAll(".input-checkbox").forEach(item =>{
@@ -296,7 +315,11 @@
       }
     });
 
-    if(id === 'Field'){
+    let inputObjectFieldDescribe = document.getElementById("input-object-describe");
+
+    if(inputObjectFieldDescribe){
+      inputObjectFieldDescribe.focus();
+    }else if(id === 'Field'){
       document.querySelector('#input-field').focus();
     }
   }

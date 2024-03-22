@@ -523,7 +523,7 @@ export class html{
                         
                         this.pageView.selectedFields.forEach(field =>{
                             toReturn += `
-                                <tr class="slds-hint-parent" scope="row">
+                                <tr class="slds-hint-parent" scope="row" data-field="tr-${field}">
                                     <td class="column-input-checkbox no-border-right">
                                         <button 
                                             type="button"
