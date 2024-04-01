@@ -481,36 +481,7 @@ export class PageView{
 					${DEFAULT_FILTER_SOQL_PARENT}
 			`)
 			.then(resultFields =>{
-				resultFields.records.forEach((fieldPermission: any) =>{
-					this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
-						id: fieldPermission.Id, 
-						permission: fieldPermission.Parent.Name,
-						permissionId: fieldPermission.ParentId,
-						field: fieldPermission.Field, 
-						read: fieldPermission.PermissionsRead, 
-						edit: fieldPermission.PermissionsEdit
-					});
-				});
-
-				fields.forEach(field =>{
-					this.selectedPermissions.forEach(permission =>{
-						let keyValue = permission.api +'.'+ field;
-
-						if(!this.fieldValues.has(keyValue)){
-							this.fieldValues.set(keyValue, {
-								id: null, 
-								permission: permission.api, 
-								permissionId: permission.id,
-								field: field, 
-								read: false, 
-								edit: false
-							});
-						}
-					});
-				});
-
-				this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
-				this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
+				this.createFieldPermissions(resultFields, fields);
 
 				if(isSetFocus){
 					this.setTabFocus('Field');
@@ -643,72 +614,87 @@ export class PageView{
 		this._update();
 	}
 
-	private whereIsPermission(){
-		this.createMessage(false);
-
-		let listPermissionsToFilter = new Array();
-		this.fieldValues = new Map();
-		this.selectedPermissions = new Array();
-		this.permissionsToSelect = new Array();
-		this.permissionsToSelect = [...this.permissionsBase];
-
-		query(this.connection, `
-			SELECT Id
-				, Field
-				, Parent.Label
-				, Parent.Name
-				, ParentId
-				, PermissionsEdit 
-				, PermissionsRead
-				, SobjectType
-			FROM FieldPermissions 
-			WHERE Parent.IsCustom = true
-				AND Field IN ('${this.selectedFields.join("','")}')
-				${DEFAULT_FILTER_SOQL_PARENT}
-		`)
-		.then(resultFields =>{
-			resultFields.records.forEach((fieldPermission: any) =>{
-				if(!listPermissionsToFilter.includes(fieldPermission.Parent.Name)){
-					listPermissionsToFilter.push(fieldPermission.ParentId);
-				}
-
-				this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
-					id: fieldPermission.Id, 
-					permission: fieldPermission.Parent.Name,
-					permissionId: fieldPermission.ParentId,
-					field: fieldPermission.Field, 
-					read: fieldPermission.PermissionsRead, 
-					edit: fieldPermission.PermissionsEdit
-				});
+	private createFieldPermissions(listFieldPermission: any, listFields: any){
+		listFieldPermission.records.forEach((fieldPermission: any) =>{
+			this.fieldValues.set(fieldPermission.Parent.Name +'.'+ fieldPermission.Field, { 
+				id: fieldPermission.Id, 
+				permission: fieldPermission.Parent.Name,
+				permissionId: fieldPermission.ParentId,
+				field: fieldPermission.Field, 
+				read: fieldPermission.PermissionsRead, 
+				edit: fieldPermission.PermissionsEdit
 			});
+		});
 
-			this.selectedPermissions = 
-				this.permissionsBase.filter((e) => listPermissionsToFilter.includes(e.id));
+		listFields.forEach(field =>{
+			this.selectedPermissions.forEach(permission =>{
+				let keyValue = permission.api +'.'+ field;
 
-			this.permissionsToSelect = 
-				this.permissionsToSelect.filter((e) => !listPermissionsToFilter.includes(e.id));
+				if(!this.fieldValues.has(keyValue)){
+					this.fieldValues.set(keyValue, {
+						id: null, 
+						permission: permission.api, 
+						permissionId: permission.id,
+						field: field, 
+						read: false, 
+						edit: false
+					});
+				}
+			});
+		});
 
-			this.selectedFields.forEach(field =>{
-				this.selectedPermissions.forEach(permission =>{
-					let keyValue = permission.api +'.'+ field;
+		this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
+	}
 
-					if(!this.fieldValues.has(keyValue)){
-						this.fieldValues.set(keyValue, {
-							id: null, 
-							permission: permission.api, 
-							permissionId: permission.id,
-							field: field, 
-							read: false, 
-							edit: false
-						});
+	// TODO: create same function for objects
+	private whereIsPermission(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Searching permissions...',
+		}, async (progress) => {
+			this.createMessage(false);
+
+			let listPermissionsToFilter = new Array();
+			this.fieldValues = new Map();
+			this.selectedPermissions = new Array();
+			this.permissionsToSelect = new Array();
+			this.permissionsToSelect = [...this.permissionsBase];
+
+			query(this.connection, `
+				SELECT Id
+					, Field
+					, Parent.Label
+					, Parent.Name
+					, ParentId
+					, PermissionsEdit 
+					, PermissionsRead
+					, SobjectType
+				FROM FieldPermissions 
+				WHERE Parent.IsCustom = true
+					AND Field IN ('${this.selectedFields.join("','")}')
+					${DEFAULT_FILTER_SOQL_PARENT}
+			`)
+			.then(resultFields =>{
+				this.createFieldPermissions(resultFields, this.selectedFields);
+
+				resultFields.records.forEach((fieldPermission: any) =>{
+					if(!listPermissionsToFilter.includes(fieldPermission.Parent.Name)){
+						listPermissionsToFilter.push(fieldPermission.ParentId);
 					}
 				});
+
+				this.selectedPermissions = 
+					this.permissionsBase.filter((e) => listPermissionsToFilter.includes(e.id));
+
+				this.permissionsToSelect = 
+					this.permissionsToSelect.filter((e) => !listPermissionsToFilter.includes(e.id));
+			})
+			.catch(errorFields =>{
+				this.setError(errorFields);
+			})
+			.finally(() =>{
+				this._update();
 			});
-
-			this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
-			this.selectedFields.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
-
-			this._update();
 		});
 	}
 
