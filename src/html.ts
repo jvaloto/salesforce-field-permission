@@ -115,12 +115,18 @@ export class html{
                                 <label class="slds-form-element__label">
                                     Object API Name
                                 </label>
-                                <input 
-                                    type="text" 
+                                <select 
                                     id="input-object" 
                                     class="slds-input" 
                                     value="${this.pageView.selectedObject}"
-                                />
+                                />`;
+
+                                this.pageView.listObject.forEach(object =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
                         </div>
 
@@ -306,11 +312,17 @@ export class html{
                                 <label class="slds-form-element__label">
                                     Object API Name
                                 </label>
-                                <input 
-                                    type="text" 
+                                <select 
                                     id="input-object-describe" 
                                     class="slds-input" 
-                                />
+                                >`; 
+
+                                this.pageView.listObject.forEach(object =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
 
                             <br/>
