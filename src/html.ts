@@ -149,6 +149,7 @@ export class html{
                         id="button-add-object" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Add selected object to set permissions"
                     >
                         Add Object
                     </button>
@@ -156,6 +157,7 @@ export class html{
                         id="button-add-field-object" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Select mass fields by object to set permissions"
                     >
                         Add Fields by Object
                     </button>
@@ -164,6 +166,7 @@ export class html{
                         id="button-add-field" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Add selected field to set permissions"
                     >
                         Add Field
                     </button>
@@ -224,6 +227,7 @@ export class html{
                     id="button-set-org" 
                     type="button" 
                     class="slds-button slds-button_brand"
+                    title="Use selected org to retrieve and set permissions" 
                 >
                     Set Org
                 </button>
@@ -286,6 +290,7 @@ export class html{
                         id="button-add-permission-set" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Add selected permission to set permissions"
                     >
                         Add Permission
                     </button>
@@ -330,6 +335,7 @@ export class html{
                             <button 
                                 class="slds-button slds-button_brand" 
                                 id="button-set-object"
+                                title="Get all fields from selected object"
                             >
                                 Get Fields
                             </button>
@@ -404,6 +410,7 @@ export class html{
                         <button 
                             id="button-add-object-fields" 
                             class="slds-button slds-button_brand"
+                            title="Add selected fields to set permissions"
                         >
                             Add Fields
                         </button>
@@ -454,7 +461,7 @@ export class html{
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                     <thead>
                         <tr>
-                            <th class="text-center th-label" colspan="2" scope="col">
+                            <th class="text-center width-100" colspan="2" scope="col">
                                 Permission Set 
                             </th>
         `;
@@ -484,7 +491,7 @@ export class html{
         toReturn += `
             </tr>
             <tr>
-                <th class="text-center th-label" colspan="2" scope="col">
+                <th class="text-center width-100" colspan="2" scope="col">
                     Object.Field
                 </th>
         `;
@@ -597,6 +604,7 @@ export class html{
                         id="button-save" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Save permissions for these fields"
                     >
                         Save
                     </button>
@@ -704,6 +712,7 @@ export class html{
                             data-object="${object}"
                             type="button" 
                             class="slds-button slds-button_brand button-save-object"
+                            title="Save permissions for this object"
                         >
                             Save
                         </button>
@@ -757,6 +766,7 @@ export class html{
             <div class="slds-no-flex">
                 <button 
                     class="button-where-permission slds-button slds-button_brand"
+                    title="Search in all custom permissions set for fields and objects that were added"
                 >
                     Where's the permission?
                 </button>
