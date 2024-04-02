@@ -318,7 +318,7 @@ export class html{
                                 >`; 
 
                                 this.pageView.listObject.forEach(object =>{
-                                    toReturn += `<option value="${object}">${object}</option>`;
+                                    toReturn += `<option value="${object}" ${object === this.pageView.objectToDescribe ? 'selected' : ''}>${object}</option>`;
                                 });
 
                                 toReturn += `
@@ -449,15 +449,8 @@ export class html{
         <div class="slds-tabs_default__content tab-content slds-show" data-id="Field">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
-                <div class="slds-no-flex">
-                    <button 
-                        id="button-where-permission" 
-                        class="slds-button slds-button_brand"
-                    >
-                        Where's the permission?
-                    </button>
-                </div>
-        
+                ${this.createWhereIsPermissionButton()}
+
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                     <thead>
                         <tr>
@@ -623,6 +616,8 @@ export class html{
                 <div class="slds-tabs_default__content tab-content slds-hide" data-id="${object}">
                     <article class="slds-card">
                         <div class="slds-card__body slds-card__body_inner">
+                            ${this.createWhereIsPermissionButton()}
+
                             <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                                 <thead>
                                     <tr>
@@ -755,6 +750,18 @@ export class html{
 
     getColumnColor(){
         return this.columnColor;
+    }
+
+    createWhereIsPermissionButton(){
+        return `
+            <div class="slds-no-flex">
+                <button 
+                    class="button-where-permission slds-button slds-button_brand"
+                >
+                    Where's the permission?
+                </button>
+            </div>
+        `;
     }
 
 }

@@ -1,9 +1,9 @@
 import { executeCommand } from "./cmd";
 
 export async function getObjects(org: string): Promise<Array<string>>{
-    let jsonResult = await executeCommand(`sf data query --query "SELECT QualifiedApiName FROM EntityDefinition  WHERE IsCustomizable = true AND IsCustomSetting = false ORDER BY QualifiedApiName ASC" -o ${org} --json`);
-
     let listToReturn = new Array();
+
+    let jsonResult = await executeCommand(`sf data query --query "SELECT QualifiedApiName FROM EntityDefinition WHERE IsCustomizable = true AND IsCustomSetting = false ORDER BY QualifiedApiName ASC" -o ${org} --json`);
 
     JSON.parse(jsonResult.stdout).result.records.forEach((object: any) =>{
         listToReturn.push(object.QualifiedApiName);

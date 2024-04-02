@@ -65,8 +65,6 @@
   };
 
   const autocompleteObject = function(event, type){
-    console.log(type);
-
     if(event.keyCode === 13){
       clearTime();
       
@@ -99,13 +97,13 @@
     clearTime();
   });
 
-  document.querySelector('#input-object')?.addEventListener('keyup', (event) =>{
-    autocompleteObject(event, 'add-object');
-  });
+  // document.querySelector('#input-object')?.addEventListener('keyup', (event) =>{
+  //   autocompleteObject(event, 'add-object');
+  // });
   
-  document.querySelector('#input-object-describe')?.addEventListener('keyup', (event) =>{
-    autocompleteObject(event, 'get-fields');
-  });
+  // document.querySelector('#input-object-describe')?.addEventListener('keyup', (event) =>{
+  //   autocompleteObject(event, 'get-fields');
+  // });
 
   document.querySelector('#input-save-default-org')?.addEventListener('change', (event) =>{
     let checked = event.target.checked;
@@ -262,9 +260,11 @@
     });
   });
 
-  document.querySelector('#button-where-permission')?.addEventListener('click', () =>{
-    vscode.postMessage({
-      command: 'WHERE-IS-PERMISSION'
+  document.querySelectorAll(".button-where-permission").forEach(item =>{
+    item.addEventListener('click', (event) =>{
+      vscode.postMessage({
+        command: 'WHERE-IS-PERMISSION'
+      });
     });
   });
 
@@ -329,6 +329,10 @@
     }
   }
   
+  document.querySelector('#input-object-describe')?.addEventListener('change', () =>{
+    document.querySelector('.spf-table-field tbody').innerHTML = '';
+  });
+
   document.querySelector('#button-add-object')?.addEventListener('click', () =>{
     addObject();
   });
