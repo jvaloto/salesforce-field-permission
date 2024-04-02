@@ -459,7 +459,7 @@ export class PageView{
 	private addMetadata(fields: Array<string>, permissions: Array<string>, isSetFocus: boolean = false){
 		if(fields && fields.length){
 			if(!permissions.length){
-				permissions = this.getValueFromList(this.selectedPermissions, ' id');
+				permissions = this.getValueFromList(this.selectedPermissions, 'id');
 			}
 
 			query(this.connection, `
