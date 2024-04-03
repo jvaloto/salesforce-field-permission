@@ -2,7 +2,7 @@
   "name": "sfp",
   "displayName": "Salesforce Field Permission",
   "description": "Extension to set field permission in permission sets",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "JonathanValoto",
   "engines": {
     "vscode": "^1.86.0"
