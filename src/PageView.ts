@@ -344,7 +344,7 @@ export class PageView{
 
 			this.permissionsToSelect = [...this.permissionsBase];
 
-			if(setDefaultPermissionSet && setDefaultPermissionSet.length){
+			if(setDefaultPermissionSet && JSON.parse(setDefaultPermissionSet).length > 0){
 				this.checkedDefaultPermissionSet = true;
 				
 				JSON.parse(setDefaultPermissionSet).forEach((permission: any) =>{
@@ -873,13 +873,19 @@ export class PageView{
 		this._update();
 	}
 
-	private formatErrorMessage(error: any, name: string){
+	private formatErrorMessage(error: any, name: string, additionalText?: string){
 		let messageToReturn = '';
 
 		if(error[0].statusCode === 'INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST'){
 			messageToReturn = `Object / Field (${name}) is invalid or is not updatable`;
 		}else{
-			messageToReturn = error[0].message;
+			if(additionalText){
+				additionalText = additionalText + ': ';
+			}else{
+				additionalText = '';
+			}
+
+			messageToReturn = `${additionalText} ${error[0].message}`;
 		}
 
 		return messageToReturn;
@@ -1053,7 +1059,7 @@ export class PageView{
 						if(item.success){
 							this.objectValues.get(object).get(record.ParentId).id = item.id;
 						}else{
-							errorList.push(this.formatErrorMessage(item.errors, object));
+							errorList.push(this.formatErrorMessage(item.errors, object, this.permissionsMap.get(record.ParentId).Name));
 						}
 
 						index ++;
