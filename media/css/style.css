@@ -122,3 +122,11 @@ body{
 .width-100{
 	width: 100% !important;
 }
+
+.tab-content .slds-card{
+	padding-top: 5px;
+}
+
+.button-where-permission{
+	margin: 0px 0px 10px 0px;
+}

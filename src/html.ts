@@ -9,6 +9,7 @@ export class html{
     sldsUri: vscode.Uri;
     loadingUri: vscode.Uri;
     projectName: string;
+    columnColor: number;
 
     constructor(
         pageView: PageView, 
@@ -90,8 +91,14 @@ export class html{
                 ${this.createHtmlField()}
                 
                 ${this.createHtmlMessage()}
+
+                <div class="slds-tabs_default">
+                    ${this.createHtmlTabs()}
                 
-                ${this.createHtmlTable()}
+                    ${this.createHtmlTable()}
+
+                    ${this.createHtmlTabContent()}
+                </div>
             `;
         }
 
@@ -105,28 +112,33 @@ export class html{
                     <div class="slds-grid slds-gutters">
                         <div class="slds-col">
                             <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-50">
+                                <label class="slds-form-element__label">
                                     Object API Name
                                 </label>
-                                <input 
-                                    type="text" 
+                                <select 
                                     id="input-object" 
                                     class="slds-input" 
                                     value="${this.pageView.selectedObject}"
-                                />
+                                />`;
+
+                                this.pageView.listObject.forEach(object =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
                         </div>
 
                         <div class="slds-col">
                             <div class="slds-form-element">
-                                <label class="slds-form-element__label" for="text-input-id-50">
+                                <label class="slds-form-element__label">
                                     Field API Name
                                 </label>
                                 <input 
                                     type="text" 
                                     id="input-field" 
                                     class="slds-input" 
-                                    value="${this.pageView.selectedField}"
                                 />
                             </div>
                         </div>
@@ -134,9 +146,18 @@ export class html{
                 </div>
                 <footer class="slds-card__footer">
                     <button 
+                        id="button-add-object" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Add selected object to set permissions"
+                    >
+                        Add Object
+                    </button>
+                    <button 
                         id="button-add-field-object" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Select mass fields by object to set permissions"
                     >
                         Add Fields by Object
                     </button>
@@ -145,6 +166,7 @@ export class html{
                         id="button-add-field" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Add selected field to set permissions"
                     >
                         Add Field
                     </button>
@@ -160,7 +182,7 @@ export class html{
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <div class="form-element">
-                    <label class="slds-form-element__label" for="select-01">
+                    <label class="slds-form-element__label">
                         Org list
                     </label>
                     <div class="slds-form-element__control">
@@ -186,7 +208,6 @@ export class html{
                         <div class="slds-checkbox">
                             <input 
                                 type="checkbox" 
-                                name="options" 
                                 id="input-save-default-org" 
                                 ${this.pageView.checkedDefaultOrg ? 'checked' : ''}
                             />
@@ -206,6 +227,7 @@ export class html{
                     id="button-set-org" 
                     type="button" 
                     class="slds-button slds-button_brand"
+                    title="Use selected org to retrieve and set permissions" 
                 >
                     Set Org
                 </button>
@@ -224,7 +246,7 @@ export class html{
             <article class="slds-card">
                 <div class="slds-card__body slds-card__body_inner">
                     <div class="slds-form-element">
-                        <label class="slds-form-element__label" for="select-01">
+                        <label class="slds-form-element__label">
                             Permission Set
                         </label>
                         <div class="slds-form-element__control">
@@ -250,7 +272,6 @@ export class html{
                             <div class="slds-checkbox">
                                 <input 
                                     type="checkbox" 
-                                    name="options" 
                                     id="input-save-default-permission-set" 
                                     ${this.pageView.checkedDefaultPermissionSet ? 'checked' : ''}
                                 />
@@ -269,6 +290,7 @@ export class html{
                         id="button-add-permission-set" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Add selected permission to set permissions"
                     >
                         Add Permission
                     </button>
@@ -290,23 +312,18 @@ export class html{
                 <div class="slds-modal__container">
                 <div class="slds-modal__content slds-p-around_medium">
                     <p>
-                        <label class="slds-form-element__label" for="select-01">
-                            Object
-                        </label>
-                        <div class="slds-form-element__control">
-                            <div class="slds-select_container">
-                                <select id="input-object-describe" class="slds-select">
-            `;
+                        <div class="slds-form-element">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <select 
+                                    id="input-object-describe" 
+                                    class="slds-input" 
+                                >`; 
 
                                 this.pageView.listObject.forEach(object =>{
-                                    toReturn += `
-                                        <option 
-                                            value="${object}" 
-                                                ${this.pageView.objectToDescribe === object ? 'selected' : ''}
-                                            >
-                                            ${object}
-                                        </option>
-                                    `;
+                                    toReturn += `<option value="${object}" ${object === this.pageView.objectToDescribe ? 'selected' : ''}>${object}</option>`;
                                 });
 
                                 toReturn += `
@@ -318,6 +335,7 @@ export class html{
                             <button 
                                 class="slds-button slds-button_brand" 
                                 id="button-set-object"
+                                title="Get all fields from selected object"
                             >
                                 Get Fields
                             </button>
@@ -392,6 +410,7 @@ export class html{
                         <button 
                             id="button-add-object-fields" 
                             class="slds-button slds-button_brand"
+                            title="Add selected fields to set permissions"
                         >
                             Add Fields
                         </button>
@@ -405,32 +424,53 @@ export class html{
         return toReturn;
     }
 
+    createHtmlTabs(){
+        let toReturn = `
+            <ul class="slds-tabs_default__nav" role="tablist">
+                <li class="slds-tabs_default__item slds-is-active li-tab" data-id="Field">
+                    <a class="slds-tabs_default__link input-tab" data-id="Field">
+                        Fields
+                    </a>
+                </li>
+        `;
+        
+        this.pageView.listSelectedObjects.forEach(object =>{
+            toReturn += `
+                    <li class="slds-tabs_default__item li-tab" data-id="${object}">
+                        <a class="slds-tabs_default__link input-tab" data-id="${object}">
+                            ${object}
+                        </a>
+                    </li>
+            `;
+        });
+
+        toReturn += `
+            </ul>
+        `;
+
+        return toReturn;
+    }
+
     createHtmlTable(){
         let toReturn = `
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="Field">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
-                <div class="slds-no-flex">
-                    <button 
-                        id="button-where-permission" 
-                        class="slds-button slds-button_brand"
-                    >
-                        Where's the permission?
-                    </button>
-                </div>
-        
+                ${this.createWhereIsPermissionButton()}
+
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
                     <thead>
                         <tr>
-                            <th class="text-center th-label" colspan="2" scope="col">
+                            <th class="text-center width-100" colspan="2" scope="col">
                                 Permission Set 
                             </th>
         `;
 
-        let numberColor = 1;
+        this.resetColumnColor();
 
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
-                <th colspan="2" class="text-center view-edit-${numberColor}" scope="col">
+                <th colspan="2" class="text-center view-edit-${this.getColumnColor()}" scope="col">
                     ${permission.label}
                     <br/>
                     ${permission.api}
@@ -445,23 +485,23 @@ export class html{
                 </th>
             `;
 
-            numberColor = numberColor === 1 ? 2 : 1;
+            this.setColumnColor();
         });
 
         toReturn += `
             </tr>
             <tr>
-                <th class="text-center th-label" colspan="2" scope="col">
+                <th class="text-center width-100" colspan="2" scope="col">
                     Object.Field
                 </th>
         `;
 
-        numberColor = 1;
+        this.resetColumnColor();
 
         this.pageView.selectedPermissions.forEach(permission =>{
             toReturn += `
-                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
-                    View
+                <th class="text-center column-input-checkbox view-edit-${this.getColumnColor()}" scope="col">
+                    Read
                     <br/>
                     <input 
                         data-permission="${permission.api}" 
@@ -471,7 +511,7 @@ export class html{
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
-                <th class="text-center column-input-checkbox view-edit-${numberColor}" scope="col">
+                <th class="text-center column-input-checkbox view-edit-${this.getColumnColor()}" scope="col">
                     Edit
                     <br/>
                     <input 
@@ -484,7 +524,7 @@ export class html{
                 </th>
             `;
             
-            numberColor = numberColor === 1 ? 2 : 1;
+            this.setColumnColor();
         });
 
         toReturn += `
@@ -495,7 +535,7 @@ export class html{
                         
                         this.pageView.selectedFields.forEach(field =>{
                             toReturn += `
-                                <tr class="slds-hint-parent" scope="row">
+                                <tr class="slds-hint-parent" scope="row" data-field="tr-${field}">
                                     <td class="column-input-checkbox no-border-right">
                                         <button 
                                             type="button"
@@ -510,35 +550,37 @@ export class html{
                                     </td>
                             `;
                 
-                            numberColor = 1;
+                            this.resetColumnColor();
 
                             for(let x in this.pageView.selectedPermissions){
-                                let recordValue = this.pageView.values.get(this.pageView.selectedPermissions[x].api +'.'+ field);
+                                let recordValue = this.pageView.fieldValues.get(this.pageView.selectedPermissions[x].api +'.'+ field);
 
-                                toReturn += `
-                                    <td class="center column-input-checkbox view-edit-${numberColor}">
-                                        <input 
-                                            data-field="${field}" 
-                                            data-permission="${this.pageView.selectedPermissions[x].api}" 
-                                            data-type="read" 
-                                            type="checkbox" 
-                                            class="input-checkbox"
-                                            ${recordValue.read ? 'checked' : ''}
-                                        />
-                                    </td>
-                                    <td class="center column-input-checkbox view-edit-${numberColor}">
-                                        <input 
-                                            data-field="${field}" 
-                                            data-permission="${this.pageView.selectedPermissions[x].api}" 
-                                            data-type="edit" 
-                                            type="checkbox" 
-                                            class="input-checkbox"
-                                            ${recordValue.edit ? 'checked' : ''}
-                                        />
-                                    </td>
-                                `;
+                                if(recordValue){
+                                    toReturn += `
+                                        <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                            <input 
+                                                data-field="${field}" 
+                                                data-permission="${this.pageView.selectedPermissions[x].api}" 
+                                                data-type="read" 
+                                                type="checkbox" 
+                                                class="input-checkbox"
+                                                ${recordValue.read ? 'checked' : ''}
+                                            />
+                                        </td>
+                                        <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                            <input 
+                                                data-field="${field}" 
+                                                data-permission="${this.pageView.selectedPermissions[x].api}" 
+                                                data-type="edit" 
+                                                type="checkbox" 
+                                                class="input-checkbox"
+                                                ${recordValue.edit ? 'checked' : ''}
+                                            />
+                                        </td>
+                                    `;
 
-                                numberColor = numberColor === 1 ? 2 : 1;
+                                    this.setColumnColor();
+                                }
                             }
                 
                             toReturn += `
@@ -562,12 +604,123 @@ export class html{
                         id="button-save" 
                         type="button" 
                         class="slds-button slds-button_brand"
+                        title="Save permissions for these fields"
                     >
                         Save
                     </button>
                 </footer>
             </article>
+            </div>
         `;
+
+        return toReturn;
+    }
+
+    createHtmlTabContent(){
+        let toReturn = '';
+
+        this.pageView.listSelectedObjects.forEach(object =>{
+            toReturn += `
+                <div class="slds-tabs_default__content tab-content slds-hide" data-id="${object}">
+                    <article class="slds-card">
+                        <div class="slds-card__body slds-card__body_inner">
+                            ${this.createWhereIsPermissionButton()}
+
+                            <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center width-100" scope="col">
+                                            Permission 
+                                        </th>`;
+
+                                        this.resetColumnColor();
+
+                                        this.pageView.selectedPermissions.forEach(permission =>{
+                                            toReturn += `
+                                                <th class="text-center view-edit-${this.getColumnColor()}" scope="col">
+                                                    ${permission.label}
+                                                    <br/>
+                                                    ${permission.api}
+                                                    <br/>
+                                                    <button
+                                                        type="button" 
+                                                        class="icon-remove button-remove-permission"
+                                                        data-permission="${permission.api}"
+                                                    >
+                                                        x
+                                                    </button>
+                                                </th>
+                                            `;
+
+                                            this.setColumnColor();
+                                        });
+
+                                        let mapOptions = new Map();
+                                        mapOptions.set('read', 'Read');
+                                        mapOptions.set('create', 'Create');
+                                        mapOptions.set('edit', 'Edit');
+                                        mapOptions.set('delete', 'Delete');
+                                        mapOptions.set('viewAll', 'View All');
+                                        mapOptions.set('modifyAll', 'Modify All');
+                                        
+                                    toReturn += `</tr>
+                            </thead>
+                            <tbody>
+                                <tr class="slds-hint-parent" scope="row">`;
+
+                                this.resetColumnColor();
+
+                                for(let [key, value] of mapOptions){
+                                    toReturn += 
+                                        `<td class="width-100">
+                                            ${value}
+                                        </td>`;
+
+                                        if(this.pageView.objectValues.size){
+                                            this.pageView.selectedPermissions.forEach(permission =>{
+                                                toReturn += `
+                                                    <td class="center column-input-checkbox view-edit-${this.getColumnColor()}">
+                                                        <input 
+                                                            data-permission="${permission.id}" 
+                                                            data-id="${this.pageView.objectValues.get(object).get(permission.id).id}"
+                                                            data-type="${key}"
+                                                            data-object="${object}"
+                                                            type="checkbox"
+                                                            class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
+                                                            ${this.pageView.objectValues.get(object).get(permission.id)[key] ? 'checked' : ''}
+                                                        />
+                                                    </td>`;
+                                            });
+                                        }
+
+                                    toReturn += `</tr>`;
+                                }
+
+                                toReturn += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <footer class="slds-card__footer">
+                        <button 
+                            data-object="${object}"
+                            type="button" 
+                            class="slds-button slds-button_neutral button-remove-object"
+                        >
+                            Remove
+                        </button>
+                        <button 
+                            data-object="${object}"
+                            type="button" 
+                            class="slds-button slds-button_brand button-save-object"
+                            title="Save permissions for this object"
+                        >
+                            Save
+                        </button>
+                    </footer>
+                </article>
+            </div>
+            `;
+        });
 
         return toReturn;
     }
@@ -594,6 +747,31 @@ export class html{
         }
 
         return toReturn;
+    }
+
+    resetColumnColor(){
+        this.columnColor = 1;
+    }
+
+    setColumnColor(){
+        this.columnColor = this.columnColor === 1 ? 2 : 1;
+    }
+
+    getColumnColor(){
+        return this.columnColor;
+    }
+
+    createWhereIsPermissionButton(){
+        return `
+            <div class="slds-no-flex">
+                <button 
+                    class="button-where-permission slds-button slds-button_brand"
+                    title="Search in all custom permissions set for fields and objects that were added"
+                >
+                    Where's the permission?
+                </button>
+            </div>
+        `;
     }
 
 }
