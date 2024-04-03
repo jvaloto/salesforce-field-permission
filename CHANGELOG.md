@@ -4,7 +4,7 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.2.0
+## 0.3.0
 
 - Set permissions for objects
 - Select an object using picklist
