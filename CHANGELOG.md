@@ -4,6 +4,15 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.2.0
+
+- Set permissions for objects
+- Select an object using picklist
+- "Where's the permission?" function for object and fields
+- Minor CSS changes
+- Bug fixes
+- Internal structure changes
+
 ## 0.1.3
 
 - Filter fields by label or api from object

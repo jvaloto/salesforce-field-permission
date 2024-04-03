@@ -19,10 +19,11 @@ You can set org and permission sets as default and when you open the page these 
 
 - List all authenticated orgs from salesforce cli
 - Select permission set from a list
-- Add Object API and Field API as text fields
-- Select fields from a object
-- Select fields and let extension search in what permission set are used
-- Create/Update permission set fields
+- Select Object API from a list
+- Select Field API as text field
+- Select multiple fields filtering by an object
+- Select object and fields and let the extension search in what permission set they are been used
+- Create/Update permission set for object and fields
 - Set org as default for next use
 - Set permission set as default for next use
 
@@ -34,31 +35,17 @@ Open Command Pallet and use this command:
 
 ## Basic usage
 
-Select permission sets, add fields and change the permissions
+Select permission sets, add object and fields and change the permissions
 
-![example_basic.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_basic.gif?raw=true)
-
-## Selecting fields from an object
-
-Select an object and show all related fields to massive selection
-
-![example_object.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_object.gif?raw=true)
-
-## Using Where's the permission? function
-
-Add fields and let the extension search for permission sets that have permission for these fields
-
-![example_where_is.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_where_is.gif?raw=true)
-
-## Setting org and permission sets as default
-
-Set org and permission sets as default and use them for next use (pre-filled)
-
-![example_default_value.gif](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/example_default_value.gif?raw=true)
+![example.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/Screenshot_1.png?raw=true)
 
 ## Release Notes
 
 You can view all changes from [CHANGELOG](https://github.com/jvaloto/salesforce-field-permission/blob/main/CHANGELOG.md) file
+
+## Next Ideas
+
+Here is my [TODO list](https://github.com/jvaloto/salesforce-field-permission/issues) with ideas for next releases
 
 ## Author
 
