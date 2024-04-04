@@ -27,6 +27,7 @@ export class PageView{
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
 	private tabFocus: string;
+	private subTabFocus: string;
 	private isInputFieldFocus: boolean;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
@@ -222,7 +223,7 @@ export class PageView{
 
 						return;
 					case 'SET-TAB-FOCUS':
-						this.setTabFocus(message.text);
+						this.setTabFocus(message.text.tab, message.text.subTab);
 
 						break;
 				}
@@ -480,7 +481,7 @@ export class PageView{
 				this.createFieldPermissions(resultFields.records, fields);
 
 				if(isSetFocus){
-					this.setTabFocus('Field');
+					this.setTabFocus('FIELD');
 				}
 
 				this._update();
@@ -818,7 +819,7 @@ export class PageView{
 			this.creatObjectPermissions(result.records, objects);
 			
 			if(isSetFocus){
-				this.setTabFocus(object);
+				this.setTabFocus('OBJECT', object);
 			}
 
 			this._update();
@@ -832,16 +833,15 @@ export class PageView{
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
 
-			this.setTabFocus('Field');
+			this.setTabFocus('OBJECT');
 			
 			this._update();
 		}
 	}
 
-	private setTabFocus(tab: string){
-		this.tabFocus = tab;
-
-		this._update();
+	private setTabFocus(tab: string, subTab?: string){
+		this.tabFocus = tab || '';
+		this.subTabFocus = subTab || '';
 	}
 
 	private async createRecords(records: Array<any>, object: string): Promise<any>{
@@ -1116,17 +1116,40 @@ export class PageView{
 
 	private _getHtmlForWebview(webview: vscode.Webview){
 		if(PageView.currentPanel !== undefined){
-			const scriptUri = webview.asWebviewUri(
-				vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js')
-			);
+			let listScripts = new Array();
+			let listStyles = new Array();
 
-			const styleUri = webview.asWebviewUri(
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'main.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'field.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'object.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'connection.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'permissionSet.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'objectFieldModal.js')
+			));
+
+			listStyles.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/css/', 'style.css')
-			);
+			));
 
-			const sldsUri = webview.asWebviewUri(
+			listStyles.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/slds/styles/', 'salesforce-lightning-design-system.css')
-			);
+			));
 
 			const loadingUri = webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/slds/images/spinners/', 'slds_spinner_brand.gif')
@@ -1135,9 +1158,8 @@ export class PageView{
 			let htmlClass = new html(
 				PageView.currentPanel, 
 				webview, 
-				scriptUri, 
-				styleUri, 
-				sldsUri, 
+				listScripts, 
+				listStyles, 
 				loadingUri, 
 				PROJECT_NAME
 			);
@@ -1200,9 +1222,19 @@ export class PageView{
 			, text: this.listObject
 		});
 
+		let tab = this.tabFocus || 'FIELD';
+		let subTab = this.subTabFocus || '';
+
+		if(tab === 'OBJECT' && subTab === '' && this.listSelectedObjects.length){
+			subTab = this.listSelectedObjects[0];
+		}
+
 		this._panel.webview.postMessage({
 			command: 'SET-TAB-FOCUS'
-			, text: this.tabFocus || 'Field'
+			, text: {
+				tab: tab,
+				subTab: subTab
+			}
 		});
 
 		this._panel.webview.postMessage({
