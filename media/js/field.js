@@ -74,7 +74,7 @@
         });
     });
 
-    document.querySelectorAll(".input-checkbox").forEach(item =>{
+    document.querySelectorAll(".input-checkbox-field").forEach(item =>{
         item.addEventListener('change', (event) =>{
             let checked = event.target.checked;
             let type = event.target.dataset.type;

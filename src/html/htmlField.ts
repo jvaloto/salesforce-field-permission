@@ -2,9 +2,9 @@ import { PageView } from "../PageView";
 
 var columnColor: number;
 
-export function getFieldContent(pageView: PageView){
+export function getContent(pageView: PageView){
     let toReturn = `
-            <div class="slds-tabs_default__content tab-content" data-id="FIELD">
+            <div class="slds-tabs_default__content tab-content" data-id="field">
                 <article class="slds-card">
                     <div class="slds-card__body slds-card__body_inner">
                         <div class="slds-grid slds-gutters">
@@ -72,9 +72,9 @@ export function getFieldContent(pageView: PageView){
 function createTable(pageView: PageView){
     let toReturn = '';
 
-    if(pageView.selectedFields.length){
+    if(pageView.selectedFields.length || pageView.selectedPermissions.length){
         toReturn += `
-        <div class="slds-tabs_default__content tab-content slds-show" data-id="FIELD">
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="field">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
@@ -182,7 +182,7 @@ function createTable(pageView: PageView){
                                             data-permission="${pageView.selectedPermissions[x].api}" 
                                             data-type="read" 
                                             type="checkbox" 
-                                            class="input-checkbox"
+                                            class="input-checkbox-field"
                                             ${recordValue.read ? 'checked' : ''}
                                         />
                                     </td>
@@ -192,7 +192,7 @@ function createTable(pageView: PageView){
                                             data-permission="${pageView.selectedPermissions[x].api}" 
                                             data-type="edit" 
                                             type="checkbox" 
-                                            class="input-checkbox"
+                                            class="input-checkbox-field"
                                             ${recordValue.edit ? 'checked' : ''}
                                         />
                                     </td>

@@ -89,7 +89,7 @@
 
     if(inputObjectFieldDescribe){
       inputObjectFieldDescribe.focus();
-    }else if(isSetInputFieldFocus && tab === 'FIELD'){
+    }else if(isSetInputFieldFocus && tab === 'field'){
       document.querySelector('#input-field').focus();
     }
 

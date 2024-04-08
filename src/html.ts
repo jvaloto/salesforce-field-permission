@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { PageView } from './PageView';
-import { getFieldContent } from './html/htmlField';
-import { getObjectContent } from './html/htmlObject';
+import * as htmlField from './html/htmlField';
+import * as htmlObject from './html/htmlObject';
 import { getConnectionContent } from './html/htmlConnection';
 import { getPermissionSetContent } from './html/htmlPermissionSet';
 import { getObjectFieldModalContent } from './html/htmlObjectFieldModal';
+import * as htmlApexClass from './html/htmlApexClass';
 
 export class html{
     pageView: PageView;
@@ -111,19 +112,27 @@ export class html{
     }
 
     createOptionsTab(){
+        let listTabs = new Array();
+        listTabs.push({id: 'field', label: "Fields"});
+        listTabs.push({id: 'object', label: "Objects"});
+        listTabs.push({id: 'apex-class', label: "Apex Class"});
+
         let toReturn = `
             <div class="slds-tabs_default">
                 <ul class="slds-tabs_default__nav" role="tablist">
-                    <li class="slds-tabs_default__item slds-is-active li-tab" data-id="FIELD">
-                        <a class="slds-tabs_default__link input-tab" data-id="FIELD">
-                            Fields
-                        </a>
-                    </li>
-                    <li class="slds-tabs_default__item li-tab" data-id="OBJECT">
-                        <a class="slds-tabs_default__link input-tab" data-id="OBJECT">
-                            Objects
-                        </a>
-                    </li>
+        `;
+
+        listTabs.forEach((tab: any) =>{
+            toReturn += `
+                <li class="slds-tabs_default__item slds-is-active li-tab" data-id="${tab.id}">
+                    <a class="slds-tabs_default__link input-tab" data-id="${tab.id}">
+                        ${tab.label}
+                    </a>
+                </li>
+            `;
+        });
+            
+        toReturn += `
                 </ul>
             </div>
         `;
@@ -133,9 +142,11 @@ export class html{
 
     createTabContent(){
         let toReturn = `
-            ${getFieldContent(this.pageView)}
+            ${htmlField.getContent(this.pageView)}
 
-            ${getObjectContent(this.pageView)}
+            ${htmlObject.getContent(this.pageView)}
+
+            ${htmlApexClass.getContent(this.pageView)}
         `;
 
         return toReturn;

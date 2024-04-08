@@ -2,10 +2,11 @@
 import * as vscode from 'vscode';
 import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
-import { create, update } from './dml';
 import jsforce from 'jsforce';
+import * as dml from './sf/sfDML';
 import { getFields, getObjects } from './object';
 import { html } from './html';
+import * as sfApexClassDAO from './sf/sfApexClassDAO';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -26,19 +27,25 @@ export class PageView{
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
+	private listApexClassBase: Array<string>;
 	private tabFocus: string;
 	private subTabFocus: string;
 	private isInputFieldFocus: boolean;
+
+	public apexClassValues: Map<any, any>;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
 	public fieldValues: Map<any, any>;
 	public isConnected: boolean;
 	public isLoading: boolean;
+	public listApexClassToSelect: Array<any>;
 	public listFieldObject: Array<any>;
 	public listObject: Array<any>;
 	public listOrgs: Array<string>;
+	public listSelectedApexClass: Array<string>;
 	public listSelectedObjects: Array<string>;
 	public loadingText: string;
+	public mapApexClass: Map<string, any>;
 	public objectToDescribe: string;
 	public objectValues: Map<any, any>;
 	public org: string;
@@ -79,23 +86,27 @@ export class PageView{
 	}
 
 	private newInstance(){
-		this.permissionsBase = new Array();
-		this.permissionsToSelect = new Array();
-		this.selectedPermissions = new Array();
-		this.selectedFields = new Array();
+		this.apexClassValues = new Map();
 		this.fieldValues = new Map();
-		this.objectValues = new Map();
-		this.permissionsMap = new Map();
 		this.isConnected = false;
-		this.selectedObject = '';
 		this.isLoading = true;
-		this.pageMessageIsActive = false;
-		this.pageMessageType = '';
-		this.pageMessageText = new Array();
-		this.showModal = false;
-		this.listObject = new Array();
+		this.listApexClass = new Array();
 		this.listFieldObject = new Array();
+		this.listObject = new Array();
+		this.listSelectedApexClass = new Array();
 		this.listSelectedObjects = new Array();
+		this.mapApexClass = new Map();
+		this.objectValues = new Map();
+		this.pageMessageIsActive = false;
+		this.pageMessageText = new Array();
+		this.pageMessageType = '';
+		this.permissionsBase = new Array();
+		this.permissionsMap = new Map();
+		this.permissionsToSelect = new Array();
+		this.selectedFields = new Array();
+		this.selectedObject = '';
+		this.selectedPermissions = new Array();
+		this.showModal = false;
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -199,7 +210,7 @@ export class PageView{
 
 						return;
 					case 'CLEAR':
-						this.clear();
+						this.clearField();
 
 						return;
 					case 'SET-DEFAULT-ORG':
@@ -224,6 +235,30 @@ export class PageView{
 						return;
 					case 'SET-TAB-FOCUS':
 						this.setTabFocus(message.text.tab, message.text.subTab);
+
+						break;
+					case 'ADD-APEX-CLASS':
+						this.addApexClass(message.text);
+
+						break;
+					case 'CLEAR-APEX-CLASS':
+						this.clearApexClass();
+
+						break;
+					case 'CHANGE-VALUE-ALL-APEX-CLASS':
+						this.checkAllPermissionApexClass(message.text.checked, message.text.permissionId);
+
+						break;
+					case 'CHANGE-VALUE-APEX-CLASS':
+						this.setApexClassValue(message.text.checked, message.text.permissionId, message.text.apexClassId);
+
+						break;
+					case 'REMOVE-APEX-CLASS':
+						this.removeApexClass(message.text);
+
+						break;
+					case 'SAVE-APEX-CLASS':
+						this.saveApexClass();
 
 						break;
 				}
@@ -358,10 +393,13 @@ export class PageView{
 			}
 
 			this.getListObjects()
-			.then(result =>{
-				this.setLoading(false);
-				
-				this._update();
+			.then(() =>{
+				this.loadApexClass()
+				.then(() =>{
+					this.setLoading(false);
+					
+					this._update();
+				});
 			});
 		})
 		.catch(error =>{
@@ -405,6 +443,16 @@ export class PageView{
 		});
 	}
 
+	private async loadApexClass(){
+		this.listApexClassBase = await sfApexClassDAO.getAll(this.connection);
+
+		this.listApexClassToSelect = [...this.listApexClassBase];
+
+		this.listApexClassToSelect.forEach((apexClass: any) =>{
+			this.mapApexClass.set(apexClass.id, apexClass);
+		});
+	}
+
 	private showFielsObject(show: boolean){
 		this.showModal = show;
 
@@ -437,7 +485,7 @@ export class PageView{
 	private addListFields(fields: Array<any>){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding fields...',
+			title: 'Adding Fields...',
 		}, async (progress) => {
 			let listFields = new Array();
 
@@ -481,7 +529,7 @@ export class PageView{
 				this.createFieldPermissions(resultFields.records, fields);
 
 				if(isSetFocus){
-					this.setTabFocus('FIELD');
+					this.setTabFocus('field');
 				}
 
 				this._update();
@@ -562,7 +610,7 @@ export class PageView{
 	private addPermission(permission: any, isAddMetadata:boolean = true){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding permission set...',
+			title: 'Adding Permission Set...',
 		}, async (progress) => {
 			this.createMessage(false);
 
@@ -575,6 +623,8 @@ export class PageView{
 					this.permissionsToSelect.filter((e) => e.api !== permission);
 
 				this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
+
+				await this.loadApexClassPermissions(true);
 
 				if(isAddMetadata){
 					let listFields = new Array();
@@ -594,17 +644,26 @@ export class PageView{
 	}
 
 	private removePermission(permission: string){
-		this.permissionsToSelect.push(this.permissionsBase.filter(e => e.api === permission)[0]);
+		let permissionData = this.permissionsBase.filter(e => e.api === permission)[0];
+
+		this.permissionsToSelect.push(permissionData);
 
 		this.permissionsToSelect.sort((a, b) => a.label < b.label ? -1 : a.label > a.label ? 1 : 0);
 
 		this.selectedPermissions = this.selectedPermissions.filter(e => e.api !== permission);
 
+		// field
 		for(let [key] of this.fieldValues){
 			if(key.startsWith(permission +'.')){
 				this.fieldValues.delete(key);
 			}
 		}
+
+		// object
+		this.objectValues.delete(permissionData.id);
+
+		// apex class
+		this.apexClassValues.delete(permissionData.id);
 
 		this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
@@ -647,8 +706,8 @@ export class PageView{
 		if(listPermission){
 			this.selectedPermissions.forEach(permission =>{
 				listObjects.forEach(object =>{
-					let key1 = object;
-					let key2 = permission.id;
+					let key1 = permission.id;
+					let key2 = object;
 					
 					if(!this.objectValues.has(key1)){
 						this.objectValues.set(key1, new Map());
@@ -668,8 +727,8 @@ export class PageView{
 			});
 
 			listPermission.forEach((permission: any) =>{
-				let key1 = permission.SobjectType;
-				let key2 = permission.ParentId;
+				let key1 = permission.ParentId;
+				let key2 = permission.SobjectType;
 
 				this.objectValues.get(key1).get(key2).id = permission.Id;
 				this.objectValues.get(key1).get(key2).permissionId = permission.ParentId;
@@ -769,7 +828,7 @@ export class PageView{
 	private addObject(object: string){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding object...',
+			title: 'Adding Object...',
 		}, async (progress) => {
 			this.createMessage(false);
 
@@ -844,6 +903,84 @@ export class PageView{
 		this.subTabFocus = subTab || '';
 	}
 
+	private addApexClass(apexClassId: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Apex Class...',
+		}, async (progress) => {
+			if(apexClassId){
+				if(!this.listSelectedApexClass.includes(apexClassId)){
+					this.listSelectedApexClass.push(apexClassId);
+					
+					this.listApexClassToSelect = this.listApexClassToSelect.filter(e => e.id !== apexClassId);
+					
+					await this.loadApexClassPermissions(this.selectedPermissions.length > 0);
+					
+					this._update();
+				}
+			}
+		});
+	}
+
+	private removeApexClass(apexClassId: string){
+		if(this.selectedPermissions.length){
+			this.selectedPermissions.forEach(permission =>{
+				this.apexClassValues.get(permission.id).delete(apexClassId);
+			});
+		}
+
+		this.listApexClassToSelect.push(this.mapApexClass.get(apexClassId));
+
+		this.listApexClassToSelect.sort((a,b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
+		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
+
+		this._update();
+	}
+
+	private async loadApexClassPermissions(checkPermission: boolean){
+		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
+
+		let listApexClassPermission = new Array();
+		
+		if(checkPermission){
+			listApexClassPermission = await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass, listIdPermissionSetToFilter);
+		}
+
+		listApexClassPermission.forEach(permission =>{
+			let key1 = permission.parentId;
+			let key2 = permission.apexClassId;
+
+			if(!this.apexClassValues.has(key1)){
+				this.apexClassValues.set(key1, new Map());
+			}
+	
+			if(!this.apexClassValues.get(key1).has(key2)){
+				this.apexClassValues.get(key1).set(key2, {id: permission.id, checked: true});
+			}
+		});
+
+		listIdPermissionSetToFilter.forEach(permissionId =>{
+			let key1 = permissionId;
+
+			if(!this.apexClassValues.has(key1)){
+				this.apexClassValues.set(key1, new Map());
+			}
+				
+			this.listSelectedApexClass.forEach(apexClassId =>{
+				let key2 = apexClassId;
+
+				if(!this.apexClassValues.get(key1).has(key2)){
+					this.apexClassValues.get(key1).set(key2, {id: null, checked: false});
+				}
+			});
+		});
+	}
+
+	private setApexClassValue(checked: boolean, parentId: string, apexClassId: string){
+		this.apexClassValues.get(parentId).get(apexClassId).checked = checked;
+	}
+
 	private async createRecords(records: Array<any>, object: string): Promise<any>{
 		if(records){
 			return await create(this.connection, object, records);
@@ -860,7 +997,7 @@ export class PageView{
 		}
 	}
 
-	private clear(){
+	private clearField(){
 		this.selectedFields = new Array();
 
 		this.fieldValues = new Map();
@@ -871,6 +1008,89 @@ export class PageView{
 		});
 
 		this._update();
+	}
+
+	private clearApexClass(){
+		this.listSelectedApexClass = new Array();
+
+		this.listApexClassToSelect = [...this.listApexClassBase];
+
+		this.apexClassValues = new Map();
+
+		this._update();
+	}
+
+	private checkAllPermissionApexClass(checked: boolean, permissionId: string){
+		this.listSelectedApexClass.forEach(apexClass =>{
+			this.apexClassValues.get(permissionId).get(apexClass).checked = checked;
+		});
+	}
+
+	private saveApexClass(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving Apex Class...',
+		}, async (progress) => {
+			let listRecordsToCreate = new Array();
+			let listRecordsToDelete = new Array();
+			let recordsMap = new Map();
+			let listErrors = new Array();
+
+			for(let [key, value] of this.apexClassValues){
+				for(let [keyApexClass, valueApexClass] of this.apexClassValues.get(key)){
+					let record = {};
+					record.Id = valueApexClass.id;
+					record.ParentId = key;
+					record.SetupEntityId = keyApexClass;
+					
+					if(!record.Id && valueApexClass.checked){
+						listRecordsToCreate.push(record);
+					}else if(record.Id && !valueApexClass.checked){
+						listRecordsToDelete.push(record.Id);
+					}
+
+					recordsMap.set(record.Id, record);
+				}
+			}
+
+			if(listRecordsToCreate.length){
+				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+
+				for(let x in listResultCreate){
+					let result = listResultCreate[x];
+					let recordInfo = listRecordsToCreate[x];
+
+					if(result.success){
+						this.apexClassValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapApexClass.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+			
+			if(listRecordsToDelete.length){
+				let listResultDelete = await dml.remove(this.connection, 'SetupEntityAccess', listRecordsToDelete);
+
+				for(let x in listResultDelete){
+					let result = listResultDelete[x];
+					let recordInfo = recordsMap.get(listRecordsToDelete[x]);
+
+					if(result.success){
+						this.apexClassValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = null;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapApexClass.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+
+			if(listErrors.length){
+				this.finallyDML(listErrors);
+			}else{
+				this.successMessage();
+
+				this._update();
+			}
+		});
 	}
 
 	private formatErrorMessage(error: any, name: string, additionalText?: string){
@@ -896,7 +1116,7 @@ export class PageView{
 
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Saving...',
+			title: 'Saving Fields...',
 		}, async (progress) => {
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
@@ -1046,7 +1266,7 @@ export class PageView{
 
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Saving...',
+			title: `Saving ${object} Object...`,
 		}, async (progress) => {
 			await this.createRecords(listToCreate, 'ObjectPermissions')
 			.then((resultCreate: any) =>{
@@ -1143,6 +1363,10 @@ export class PageView{
 				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'objectFieldModal.js')
 			));
 
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'apexClass.js')
+			));
+
 			listStyles.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/css/', 'style.css')
 			));
@@ -1222,10 +1446,10 @@ export class PageView{
 			, text: this.listObject
 		});
 
-		let tab = this.tabFocus || 'FIELD';
+		let tab = this.tabFocus || 'field';
 		let subTab = this.subTabFocus || '';
 
-		if(tab === 'OBJECT' && subTab === '' && this.listSelectedObjects.length){
+		if(tab === 'object' && subTab === '' && this.listSelectedObjects.length){
 			subTab = this.listSelectedObjects[0];
 		}
 

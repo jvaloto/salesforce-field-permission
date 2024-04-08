@@ -2,9 +2,9 @@ import { PageView } from "../PageView";
 
 var columnColor: number;
 
-export function getObjectContent(pageView: PageView){
+export function getContent(pageView: PageView){
     let toReturn = `
-            <div class="slds-tabs_default__content tab-content slds-hide" data-id="OBJECT">
+            <div class="slds-tabs_default__content tab-content slds-hide" data-id="object">
                 <article class="slds-card">
                     <div class="slds-card__body slds-card__body_inner">
                         <div class="slds-grid slds-gutters">
@@ -60,8 +60,8 @@ function createTabs(pageView: PageView){
 
     pageView.listSelectedObjects.forEach((object: string) =>{
         toReturn += `
-            <li class="slds-tabs_default__item li-sub-tab" data-id="${object}" data-parent-id="OBJECT">
-                <a class="slds-tabs_default__link input-sub-tab" data-id="${object}" data-parent-id="OBJECT">
+            <li class="slds-tabs_default__item li-sub-tab" data-id="${object}" data-parent-id="object">
+                <a class="slds-tabs_default__link input-sub-tab" data-id="${object}" data-parent-id="object">
                     ${object}
                 </a>
             </li>
@@ -140,12 +140,12 @@ function createTabContent(pageView: PageView){
                                                 <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                                     <input 
                                                         data-permission="${permission.id}" 
-                                                        data-id="${pageView.objectValues.get(object).get(permission.id).id}"
+                                                        data-id="${pageView.objectValues.get(permission.id).get(object).id}"
                                                         data-type="${key}"
                                                         data-object="${object}"
                                                         type="checkbox"
                                                         class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
-                                                        ${pageView.objectValues.get(object).get(permission.id)[key] ? 'checked' : ''}
+                                                        ${pageView.objectValues.get(permission.id).get(object)[key] ? 'checked' : ''}
                                                     />
                                                 </td>`;
                                         });
