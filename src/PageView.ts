@@ -878,7 +878,7 @@ export class PageView{
 			this.creatObjectPermissions(result.records, objects);
 			
 			if(isSetFocus){
-				this.setTabFocus('OBJECT', object);
+				this.setTabFocus('object', object);
 			}
 
 			this._update();
@@ -892,7 +892,7 @@ export class PageView{
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
 
-			this.setTabFocus('OBJECT');
+			this.setTabFocus('object');
 			
 			this._update();
 		}
