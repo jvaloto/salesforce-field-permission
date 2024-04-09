@@ -1,9 +1,45 @@
 // @ts-nocheck
 (function () {
 
+    const IDENTIFIER = 'apex-class';
+
+    var listApexClass;
+
+    window.addEventListener('message', event => {
+        const message = event.data;
+
+        switch(message.command) {
+          case 'JS-UPDATE-LIST-APEX-CLASS':
+            listApexClass = message.text;
+
+            createApexList();
+    
+            break;
+        }
+    });
+
+    const createApexList = function(){
+        let inputSelect = document.querySelector(`#input-${IDENTIFIER}`);
+
+        inputSelect.innerHTML = '';
+        inputSelect.value = '';
+
+        if(listApexClass.length){
+            listApexClass.forEach(apexClass =>{
+                let newOption = document.createElement('option');
+                newOption.value = apexClass.id;
+                newOption.innerHTML = apexClass.label;
+                
+                inputSelect.appendChild(newOption);
+            });
+            
+            inputSelect.value = listApexClass[0].id;
+        }
+    };
+
     document.querySelector('#button-add-apex-class')?.addEventListener('click', () =>{
         let apexClass = document.querySelector("#input-apex-class").value;
-    
+
         vscode.postMessage({
             command: 'ADD-APEX-CLASS',
             text: apexClass
@@ -13,6 +49,14 @@
     document.querySelectorAll(".button-remove-apex-class").forEach(item =>{
         item.addEventListener('click', (event) =>{
             let apexClass = event.target.dataset.apexClass;
+
+            Array.from(document.querySelector(`#tbody-${IDENTIFIER}`).children).forEach(line =>{
+                if(line.dataset.apexClass === apexClass){
+                    let trLine = document.querySelector(`[data-${IDENTIFIER}="${apexClass}"]`);
+                    trLine.classList.add('hidden');
+                    trLine.dataset.apexClass = '';
+                }
+            });
 
             vscode.postMessage({
                 command: 'REMOVE-APEX-CLASS',

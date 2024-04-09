@@ -19,7 +19,7 @@
         });
     });
 
-    document.querySelectorAll(".button-where-permission").forEach(item =>{
+    document.querySelectorAll("#button-where-permission").forEach(item =>{
         item.addEventListener('click', (event) =>{
             vscode.postMessage({
                 command: 'WHERE-IS-PERMISSION'

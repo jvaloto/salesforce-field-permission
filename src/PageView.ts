@@ -935,7 +935,10 @@ export class PageView{
 
 		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
 
-		this._update();
+		this._panel.webview.postMessage({
+			command: 'JS-UPDATE-LIST-APEX-CLASS'
+			, text: this.listApexClassToSelect
+		});
 	}
 
 	private async loadApexClassPermissions(checkPermission: boolean){

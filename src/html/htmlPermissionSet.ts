@@ -57,7 +57,8 @@ export function getPermissionSetContent(pageView: PageView){
                     Add Permission
                 </button>
                 <button 
-                    class="button-where-permission slds-button slds-button_brand"
+                    id="button-where-permission"
+                    class="slds-button slds-button_brand"
                     title="automatically add all custom permissions sets that has permission for any selected types"
                 >
                     Where's the permission?
