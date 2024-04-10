@@ -1004,22 +1004,6 @@ export class PageView{
 		this.apexClassValues.get(parentId).get(apexClassId).checked = checked;
 	}
 
-	private async createRecords(records: Array<any>, object: string): Promise<any>{
-		if(records){
-			return await create(this.connection, object, records);
-		}else{
-			return null;
-		}
-	}
-
-	private async updateRecords(records: Array<any>, object: string): Promise<any>{
-		if(records){
-			return await update(this.connection, object, records);
-		}else{
-			return null;
-		}
-	}
-
 	private clearField(){
 		this.selectedFields = new Array();
 
@@ -1106,14 +1090,18 @@ export class PageView{
 				}
 			}
 
-			if(listErrors.length){
-				this.finallyDML(listErrors);
-			}else{
-				this.successMessage();
-
-				this._update();
-			}
+			this.endDML(listErrors);
 		});
+	}
+
+	private endDML(listErrors: Array<string>){
+		if(listErrors.length){
+			this.finallyDML(listErrors);
+		}else{
+			this.successMessage();
+
+			this._update();
+		}
 	}
 
 	private formatErrorMessage(error: any, name: string, additionalText?: string){
@@ -1143,6 +1131,7 @@ export class PageView{
 		}, async (progress) => {
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
+			let listErrors = new Array();
 			let listRecordsToCreate = new Array();
 			let listRecordsToUpdate = new Array();
 
@@ -1165,69 +1154,43 @@ export class PageView{
 				}
 			}
 
-			let errorList = new Array();
-
-			await this.createRecords(listRecordsToCreate, 'FieldPermissions')
-			.then((result: any) =>{
-				if(result){
-					let index = 0;
+			if(listRecordsToCreate.length){
+				let listResult = await dml.create(this.connection, 'FieldPermissions', listRecordsToCreate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToCreate[x];
 					
-					result.forEach((item: any) =>{
-						let record = listRecordsToCreate[index];
-
-						if(item.success){
-							let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
-
-							this.fieldValues.get(key).id = item.id;
-						}else{
-							errorList.push(this.formatErrorMessage(item.errors, record.Field));
-						}
-
-						index ++;
-					});
-				}
-			})
-			.catch(error =>{
-				errorList.push(error);
-			})
-			.finally(() =>{
-				this.updateRecords(listRecordsToUpdate, 'FieldPermissions')
-				.then((result: any) =>{
-					if(result){
-						let index = 0;
-		
-						result.forEach((item: any) =>{
-							let record = listRecordsToUpdate[index];
-
-							if(item.success){
-								if(!record.read && !record.edit){
-									let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
-
-									if(!record.PermissionsRead){
-										this.fieldValues.get(key).id = null;
-									}
-								}
-							}else{
-								errorList.push(this.formatErrorMessage(item.errors, record.Field));
-							}
-		
-							index ++;
-						});
-					}
-				})
-				.catch(error =>{
-					errorList.push(error);
-				})
-				.finally(() =>{
-					if(errorList.length){
-						this.finallyDML(errorList);
+					if(result.success){
+						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
+						
+						this.fieldValues.get(key).id = result.id;
 					}else{
-						this.successMessage();
-
-						this._update();
+						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
 					}
-				});
-			});
+				}
+			}
+
+			if(listRecordsToUpdate.length){
+				let listResult = await dml.update(this.connection, 'FieldPermissions', listRecordsToUpdate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToUpdate[x];
+					
+					if(!recordInfo.read && !recordInfo.edit){
+						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
+
+						if(!recordInfo.PermissionsRead){
+							this.fieldValues.get(key).id = null;
+						}
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
+					}
+				}
+			}
+		
+			this.endDML(listErrors);
 		});
 	}
 
@@ -1252,94 +1215,72 @@ export class PageView{
 	}
 
 	private saveObject(object: string, values: Array<any>){
-		let listToCreate = new Array();
-		let listToUpdate = new Array();
-
-		values.forEach(value =>{
-			let record = {};
-			record.Id = value.id;
-			record.ParentId = value.permissionId;
-			record.SObjectType = object;
-			record.PermissionsRead = value.read;
-			record.PermissionsCreate = value.create;
-			record.PermissionsEdit = value.edit;
-			record.PermissionsDelete = value.delete;
-			record.PermissionsViewAllRecords = value.viewAll;
-			record.PermissionsModifyAllRecords = value.modifyAll;
-
-			if(record.Id){
-				listToUpdate.push(record);
-			}else{
-				let allFalse = true;
-
-				new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
-				.forEach(field =>{
-					if(value[field]){
-						allFalse = false;
-					}
-				});
-
-				if(!allFalse){
-					listToCreate.push(record);
-				}
-			}
-		});
-
-		let errorList = new Array();
-
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: `Saving ${object} Object...`,
 		}, async (progress) => {
-			await this.createRecords(listToCreate, 'ObjectPermissions')
-			.then((resultCreate: any) =>{
-				if(resultCreate){
-					let index = 0;
-					
-					resultCreate.forEach((item: any) =>{
-						let record = listToCreate[index];
-						
-						if(item.success){
-							this.objectValues.get(object).get(record.ParentId).id = item.id;
-						}else{
-							errorList.push(this.formatErrorMessage(item.errors, object, this.permissionsMap.get(record.ParentId).Name));
+			let listErrors = new Array();
+			let listRecordsToCreate = new Array();
+			let listRecordsToUpdate = new Array();
+
+			values.forEach(value =>{
+				let record = {};
+				record.Id = value.id;
+				record.ParentId = value.permissionId;
+				record.SObjectType = object;
+				record.PermissionsRead = value.read;
+				record.PermissionsCreate = value.create;
+				record.PermissionsEdit = value.edit;
+				record.PermissionsDelete = value.delete;
+				record.PermissionsViewAllRecords = value.viewAll;
+				record.PermissionsModifyAllRecords = value.modifyAll;
+
+				if(record.Id){
+					listRecordsToUpdate.push(record);
+				}else{
+					let allFalse = true;
+
+					new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
+					.forEach(field =>{
+						if(value[field]){
+							allFalse = false;
 						}
-
-						index ++;
 					});
-				}
-			})
-			.catch(errorCreate =>{
-				errorList.push(errorCreate);
-			})
-			.finally(() =>{
-				this.updateRecords(listToUpdate, 'ObjectPermissions')
-				.then((resultUpdate: any) =>{
-					if(resultUpdate){
-						let index = 0;
-						
-						resultUpdate.forEach((item: any) =>{
-							if(!item.success){
-								errorList.push(this.formatErrorMessage(item.errors, object));
-							}
 
-							index ++;
-						});
+					if(!allFalse){
+						listRecordsToCreate.push(record);
 					}
-				})
-				.catch(errorUpdate =>{
-					errorList.push(errorUpdate);
-				})
-				.finally(() =>{
-					if(errorList.length){
-						this.finallyDML(errorList);
-					}else{
-						this.getObjectPermissions(object, true);
-						
-						this.successMessage();
-					}
-				});
+				}
 			});
+
+			if(listRecordsToCreate.length){
+				let listResult = await dml.create(this.connection, 'ObjectPermissions', listRecordsToCreate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToCreate[x];
+					
+					if(result.success){
+						this.objectValues.get(object).get(record.ParentId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, object, this.permissionsMap.get(recordInfo.ParentId).Name));
+					}
+				}
+			}
+
+			if(listRecordsToUpdate.length){
+				let listResult = await dml.update(this.connection, 'ObjectPermissions', listRecordsToUpdate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					
+					if(!result.success){
+						listErrors.push(this.formatErrorMessage(result.errors, object));
+					}
+				}
+			}
+
+			this.endDML(listErrors);
 		});
 	}
 
