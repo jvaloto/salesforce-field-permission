@@ -4,9 +4,9 @@ import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
 import jsforce from 'jsforce';
 import * as dml from './sf/sfDML';
-import { getFields, getObjects } from './object';
 import { html } from './html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
+import * as sfObjectDAO from './sf/sfObjectDAO';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -43,7 +43,8 @@ export class PageView{
 	public isLoading: boolean;
 	public listApexClassToSelect: Array<any>;
 	public listFieldObject: Array<any>;
-	public listObject: Array<any>;
+	public listObjectAll: Array<any>;
+	public listObjectToSelect: Array<any>;
 	public listOrgs: Array<string>;
 	public listSelectedApexClass: Array<string>;
 	public listSelectedObjects: Array<string>;
@@ -95,7 +96,7 @@ export class PageView{
 		this.isLoading = true;
 		this.listApexClass = new Array();
 		this.listFieldObject = new Array();
-		this.listObject = new Array();
+		this.listObjectToSelect = new Array();
 		this.listSelectedApexClass = new Array();
 		this.listSelectedObjects = new Array();
 		this.mapApexClass = new Map();
@@ -410,40 +411,38 @@ export class PageView{
 		});
 	}
 
-	private addField(object: string, field: string){
-		this.createMessage(false);
+	private async addField(object: string, field: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Field...',
+		}, async (progress) => {
+			this.createMessage(false);
 
-		this.selectedObject = object;
+			this.selectedObject = object;
 
-		if(object && field){
-			this.isInputFieldFocus = true;
+			if(object && field){
+				this.isInputFieldFocus = true;
 
-			let keyField = `${object}.${field}`;
-			
-			if(!this.selectedFields.filter(e => e === keyField).length){
-				this.selectedFields.push(keyField);
+				let keyField = `${object}.${field}`;
 				
-				let listIdPermission = new Array();
-				
-				this.selectedPermissions.forEach(permission =>{
-					listIdPermission.push(permission.id);
-				});
+				if(!this.selectedFields.filter(e => e === keyField).length){
+					this.selectedFields.push(keyField);
+					
+					let listIdPermission = new Array();
+					
+					this.selectedPermissions.forEach(permission =>{
+						listIdPermission.push(permission.id);
+					});
 
-				this.addMetadata([keyField], listIdPermission, true);
+					await this.addMetadata([keyField], listIdPermission, true);
+				}
 			}
-		}
+		});
 	}
 
 	private async getListObjects(){
-		this.listObject = new Array();
-
-		await getObjects(this.org)
-		.then(result =>{
-			this.listObject = result;
-		})
-		.catch(error =>{
-			this.setError(error);
-		});
+		this.listObjectAll = await sfObjectDAO.getAll(this.connection);
+		this.listObjectToSelect = [...this.listObjectAll];
 	}
 
 	private async loadApexClass(){
@@ -470,17 +469,11 @@ export class PageView{
 		if(this.objectToDescribe){
 			vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
-				title: 'Loading fields...',
+				title: 'Loading Fields...',
 			}, async (progress) => {
-				await getFields(this.org, this.objectToDescribe)
-				.then(result =>{
-					this.listFieldObject = result;
+				this.listFieldObject = await sfObjectDAO.getFields(this.org, this.objectToDescribe);
 
-					this._update();
-				})
-				.catch(error =>{
-					this.setError(error);
-				});
+				this._update();
 			});
 		}
 	}
@@ -508,7 +501,7 @@ export class PageView{
 		});
 	}
 
-	private addMetadata(fields: Array<string>, permissions: Array<string>, isSetFocus: boolean = false){
+	private async addMetadata(fields: Array<string>, permissions: Array<string>, isSetFocus: boolean = false){
 		if(fields && fields.length){
 			if(!permissions.length){
 				permissions = this.getValueFromList(this.selectedPermissions, 'id');
@@ -636,12 +629,12 @@ export class PageView{
 						listFields.push(field);
 					});
 					
-					this.addMetadata(listFields, [permissionRecord.id]);
+					await this.addMetadata(listFields, [permissionRecord.id]);
 
-					this.getObjectPermissions();
-				}else{
-					this._update();
+					await this.getObjectPermissions();
 				}
+				
+				this._update();
 			}
 		});
 	}
@@ -706,41 +699,55 @@ export class PageView{
 	}
 
 	private creatObjectPermissions(listPermission: Array<any>, listObjects: Array<string>){
-		if(listPermission){
-			this.selectedPermissions.forEach(permission =>{
-				listObjects.forEach(object =>{
-					let key1 = permission.id;
-					let key2 = object;
-					
-					if(!this.objectValues.has(key1)){
-						this.objectValues.set(key1, new Map());
-					}
-					
-					this.objectValues.get(key1).set(key2, {
-						id: null,
-						permissionId: permission.id,
-						read: false,
-						create: false,
-						edit: false,
-						delete: false,
-						viewAll: false,
-						modifyAll: false
-					});
-				});
+		const createDefault = function(permissionId: string){
+			return {
+				id: null,
+				permissionId: permissionId,
+				read: false,
+				create: false,
+				edit: false,
+				delete: false,
+				viewAll: false,
+				modifyAll: false
+			};
+		};
+
+		this.selectedPermissions.forEach(permission =>{
+			listObjects.forEach(object =>{
+				let key1 = permission.id;
+				let key2 = object;
+				
+				if(!this.objectValues.has(key1)){
+					this.objectValues.set(key1, new Map());
+				}
+
+				if(!this.objectValues.get(key1).has(key2)){
+					this.objectValues.get(key1).set(key2, createDefault(permission.id));
+				}
 			});
+		});
 
+		if(listPermission && listPermission.length){
 			listPermission.forEach((permission: any) =>{
-				let key1 = permission.ParentId;
-				let key2 = permission.SobjectType;
+				let key1 = permission.parentId;
+				let key2 = permission.object;
 
-				this.objectValues.get(key1).get(key2).id = permission.Id;
-				this.objectValues.get(key1).get(key2).permissionId = permission.ParentId;
-				this.objectValues.get(key1).get(key2).read = permission.PermissionsRead;
-				this.objectValues.get(key1).get(key2).create = permission.PermissionsCreate;
-				this.objectValues.get(key1).get(key2).edit = permission.PermissionsEdit;
-				this.objectValues.get(key1).get(key2).delete = permission.PermissionsDelete;
-				this.objectValues.get(key1).get(key2).viewAll = permission.PermissionsViewAllRecords;
-				this.objectValues.get(key1).get(key2).modifyAll = permission.PermissionsModifyAllRecords;
+				if(!this.objectValues.has(key1)){
+					this.objectValues.set(key1, new Map());
+				}
+
+				if(!this.objectValues.get(key1).has(key2)){
+					this.objectValues.get(key1).set(key2, createDefault(permission.parentId));
+				}
+
+				this.objectValues.get(key1).get(key2).id = permission.id;
+				this.objectValues.get(key1).get(key2).permissionId = permission.parentId;
+				this.objectValues.get(key1).get(key2).read = permission.read;
+				this.objectValues.get(key1).get(key2).create = permission.create;
+				this.objectValues.get(key1).get(key2).edit = permission.edit;
+				this.objectValues.get(key1).get(key2).delete = permission.delete;
+				this.objectValues.get(key1).get(key2).viewAll = permission.viewAll;
+				this.objectValues.get(key1).get(key2).modifyAll = permission.modifyAll;
 			});
 		}
 	}
@@ -755,6 +762,7 @@ export class PageView{
 			let listPermissionsToFilter = new Array();
 			let listResultFieldPermission;
 			let listResultObjectPermission;
+			let listResultApexClassPermission;
 			this.selectedPermissions = new Array();
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.permissionsBase];
@@ -776,27 +784,6 @@ export class PageView{
 			.then(result =>{
 				listResultFieldPermission = result.records;
 			});
-			
-			await query(this.connection, 
-				`SELECT Id
-					, Parent.Label
-					, Parent.Name
-					, ParentId
-					, PermissionsCreate
-					, PermissionsDelete
-					, PermissionsEdit
-					, PermissionsModifyAllRecords
-					, PermissionsRead
-					, PermissionsViewAllRecords
-					, SobjectType
-				FROM ObjectPermissions 
-				WHERE SobjectType IN ('${this.listSelectedObjects.join("','")}')
-					AND Parent.IsCustom = true 
-					${DEFAULT_FILTER_SOQL_PARENT}
-			`)
-			.then(result =>{
-				listResultObjectPermission = result.records;
-			});
 
 			const filterList = function(records, permissions){
 				if(records){
@@ -807,17 +794,40 @@ export class PageView{
 					});
 				}
 			};
-
+			
 			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
-			listPermissionsToFilter.push(filterList(listResultObjectPermission, listPermissionsToFilter));
+			
+			const filterListTemporary = function(records, permissions){
+				if(records){
+					records.forEach((permission: any) =>{
+						let value = permission.parentId;
 
-			(await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass))
-			.forEach(permission =>{
-				if(!listPermissionsToFilter.includes(permission.parentId)){
-					listPermissionsToFilter.push(permission.parentId);
+						if(!permissions.includes(value)){
+							permissions.push(value);
+						}
+					});
 				}
-			});
 
+				return permissions;
+			};
+			
+			// object
+			listResultObjectPermission = 
+				await sfObjectDAO.getPermissions(this.connection, this.listSelectedObjects);
+
+			listPermissionsToFilter.push(
+				filterListTemporary(listResultObjectPermission, listPermissionsToFilter)
+			);
+			
+			// apex class
+			listResultApexClassPermission = 
+				await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass);
+
+			listPermissionsToFilter.push(
+				filterListTemporary(listResultApexClassPermission, listPermissionsToFilter)
+			);
+
+			// default process
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
 			this.selectedPermissions = 
@@ -853,64 +863,55 @@ export class PageView{
 			this.createMessage(false);
 
 			if(object){
-				if(!this.listObject.includes(object)){
+				if(!this.listObjectToSelect.includes(object)){
 					this.createMessage(true, MESSAGE_TYPE.INFO, `Object ${object} not found`);
-					
-					this._update();
 				}else if(!this.listSelectedObjects.includes(object)){
 					this.listSelectedObjects.push(object);
-					
-					this.getObjectPermissions(object, true);
+
+					this.listObjectToSelect = this.listObjectToSelect.filter(e => e !== object );
+
+					await this.getObjectPermissions(object, true);
 				}
+
+				this._update();
 			}
 		});
 	}
 
-	private getObjectPermissions(object?: string, isSetFocus: boolean=false){
+	private async getObjectPermissions(object?: string, isSetFocus: boolean=false){
 		this.createMessage(false);
 
-		let objects = new Array();
-
-		if(object){
-			objects.push(object);
-		}else{
-			objects = this.listSelectedObjects;
-		}
-
-		query(this.connection, 
-			`SELECT Id
-				, Parent.Label
-				, Parent.Name
-				, ParentId
-				, PermissionsCreate
-				, PermissionsDelete
-				, PermissionsEdit
-				, PermissionsModifyAllRecords
-				, PermissionsRead
-				, PermissionsViewAllRecords
-				, SobjectType
-			FROM ObjectPermissions 
-			WHERE SobjectType IN ('${objects.join("','")}')
-				AND Parent.IsCustom = true
-				AND ParentId IN ('${this.getValueFromList(this.selectedPermissions, 'id').join("','")}')
-		`)
-		.then(result =>{
-			this.creatObjectPermissions(result.records, objects);
+		if(this.selectedPermissions.length){
+			let objects = new Array();
 			
-			if(isSetFocus){
-				this.setTabFocus(FOCUS_OBJECT, object);
+			if(object){
+				objects.push(object);
+			}else{
+				objects = this.listSelectedObjects;
 			}
-
-			this._update();
-		})
-		.catch(error =>{
-			console.log('ERROR ', error);
-		});
+			
+			let listPermission = 
+				await sfObjectDAO.getPermissions(this.connection, objects, this.getValueFromList(this.selectedPermissions, 'id'));
+			
+			this.creatObjectPermissions(listPermission, objects);
+		}
+		
+		if(isSetFocus){
+			this.setTabFocus(FOCUS_OBJECT, object);
+		}
 	}
 
 	private removeObject(object: string){
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
+
+			this.selectedPermissions.forEach(permission =>{
+				this.objectValues.get(permission.id).delete(object);
+			});
+
+			this.listObjectToSelect.push(object);
+
+			this.listObjectToSelect.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
 
 			this.setTabFocus(FOCUS_OBJECT);
 			
@@ -928,6 +929,8 @@ export class PageView{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Adding Apex Class...',
 		}, async (progress) => {
+			this.createMessage(false);
+			
 			if(apexClassId){
 				if(!this.listSelectedApexClass.includes(apexClassId)){
 					this.listSelectedApexClass.push(apexClassId);
@@ -1214,6 +1217,9 @@ export class PageView{
 		this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
 	}
 
+
+	// TODO: after save the page is reloaded and older values are displayed (need to maintain records)
+	// TODO: after set checkbox send to backend to store value
 	private saveObject(object: string, values: Array<any>){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
@@ -1407,7 +1413,7 @@ export class PageView{
 
 		this._panel.webview.postMessage({
 			command: 'JS-UPDATE-OBJECT-LIST'
-			, text: this.listObject
+			, text: this.listObjectToSelect
 		});
 
 		let tab = this.tabFocus || FOCUS_FIELD;

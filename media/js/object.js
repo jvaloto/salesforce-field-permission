@@ -1,6 +1,8 @@
 // @ts-nocheck
 (function () {
     
+    const IDENTIFIER = 'object';
+    
     var listObject;
 
     window.addEventListener('message', event => {

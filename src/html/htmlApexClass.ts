@@ -1,7 +1,8 @@
 import { PageView } from "../PageView";
 
-var columnColor: number;
 const IDENTIFIER = 'apex-class';
+
+var columnColor: number;
 
 export function getContent(pageView: PageView){
     let toReturn = `
