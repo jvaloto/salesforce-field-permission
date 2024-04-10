@@ -2,10 +2,11 @@
 import * as vscode from 'vscode';
 import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
-import { create, update } from './dml';
 import jsforce from 'jsforce';
+import * as dml from './sf/sfDML';
 import { getFields, getObjects } from './object';
 import { html } from './html';
+import * as sfApexClassDAO from './sf/sfApexClassDAO';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -13,6 +14,9 @@ const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
 const DEFAULT_FILTER_SOQL_PARENT = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
 const DEFAULT_FILTER_SOQL = " AND ( NOT Name LIKE 'X00e%' ) ";
+const FOCUS_FIELD = 'field';
+const FOCUS_OBJECT = 'object';
+const FOCUS_APEX_CLASS = 'apex-class';
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -26,18 +30,25 @@ export class PageView{
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
 	private permissionsBase: Array<any>;
+	private listApexClassBase: Array<string>;
 	private tabFocus: string;
+	private subTabFocus: string;
 	private isInputFieldFocus: boolean;
+
+	public apexClassValues: Map<any, any>;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
 	public fieldValues: Map<any, any>;
 	public isConnected: boolean;
 	public isLoading: boolean;
+	public listApexClassToSelect: Array<any>;
 	public listFieldObject: Array<any>;
 	public listObject: Array<any>;
 	public listOrgs: Array<string>;
+	public listSelectedApexClass: Array<string>;
 	public listSelectedObjects: Array<string>;
 	public loadingText: string;
+	public mapApexClass: Map<string, any>;
 	public objectToDescribe: string;
 	public objectValues: Map<any, any>;
 	public org: string;
@@ -78,23 +89,27 @@ export class PageView{
 	}
 
 	private newInstance(){
-		this.permissionsBase = new Array();
-		this.permissionsToSelect = new Array();
-		this.selectedPermissions = new Array();
-		this.selectedFields = new Array();
+		this.apexClassValues = new Map();
 		this.fieldValues = new Map();
-		this.objectValues = new Map();
-		this.permissionsMap = new Map();
 		this.isConnected = false;
-		this.selectedObject = '';
 		this.isLoading = true;
-		this.pageMessageIsActive = false;
-		this.pageMessageType = '';
-		this.pageMessageText = new Array();
-		this.showModal = false;
-		this.listObject = new Array();
+		this.listApexClass = new Array();
 		this.listFieldObject = new Array();
+		this.listObject = new Array();
+		this.listSelectedApexClass = new Array();
 		this.listSelectedObjects = new Array();
+		this.mapApexClass = new Map();
+		this.objectValues = new Map();
+		this.pageMessageIsActive = false;
+		this.pageMessageText = new Array();
+		this.pageMessageType = '';
+		this.permissionsBase = new Array();
+		this.permissionsMap = new Map();
+		this.permissionsToSelect = new Array();
+		this.selectedFields = new Array();
+		this.selectedObject = '';
+		this.selectedPermissions = new Array();
+		this.showModal = false;
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -198,7 +213,7 @@ export class PageView{
 
 						return;
 					case 'CLEAR':
-						this.clear();
+						this.clearField();
 
 						return;
 					case 'SET-DEFAULT-ORG':
@@ -222,7 +237,31 @@ export class PageView{
 
 						return;
 					case 'SET-TAB-FOCUS':
-						this.setTabFocus(message.text);
+						this.setTabFocus(message.text.tab, message.text.subTab);
+
+						break;
+					case 'ADD-APEX-CLASS':
+						this.addApexClass(message.text);
+
+						break;
+					case 'CLEAR-APEX-CLASS':
+						this.clearApexClass();
+
+						break;
+					case 'CHANGE-VALUE-ALL-APEX-CLASS':
+						this.checkAllPermissionApexClass(message.text.checked, message.text.permissionId);
+
+						break;
+					case 'CHANGE-VALUE-APEX-CLASS':
+						this.setApexClassValue(message.text.checked, message.text.permissionId, message.text.apexClassId);
+
+						break;
+					case 'REMOVE-APEX-CLASS':
+						this.removeApexClass(message.text);
+
+						break;
+					case 'SAVE-APEX-CLASS':
+						this.saveApexClass();
 
 						break;
 				}
@@ -357,10 +396,13 @@ export class PageView{
 			}
 
 			this.getListObjects()
-			.then(result =>{
-				this.setLoading(false);
-				
-				this._update();
+			.then(() =>{
+				this.loadApexClass()
+				.then(() =>{
+					this.setLoading(false);
+					
+					this._update();
+				});
 			});
 		})
 		.catch(error =>{
@@ -404,6 +446,16 @@ export class PageView{
 		});
 	}
 
+	private async loadApexClass(){
+		this.listApexClassBase = await sfApexClassDAO.getAll(this.connection);
+
+		this.listApexClassToSelect = [...this.listApexClassBase];
+
+		this.listApexClassToSelect.forEach((apexClass: any) =>{
+			this.mapApexClass.set(apexClass.id, apexClass);
+		});
+	}
+
 	private showFielsObject(show: boolean){
 		this.showModal = show;
 
@@ -436,7 +488,7 @@ export class PageView{
 	private addListFields(fields: Array<any>){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding fields...',
+			title: 'Adding Fields...',
 		}, async (progress) => {
 			let listFields = new Array();
 
@@ -480,7 +532,7 @@ export class PageView{
 				this.createFieldPermissions(resultFields.records, fields);
 
 				if(isSetFocus){
-					this.setTabFocus('Field');
+					this.setTabFocus(FOCUS_FIELD);
 				}
 
 				this._update();
@@ -561,7 +613,7 @@ export class PageView{
 	private addPermission(permission: any, isAddMetadata:boolean = true){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding permission set...',
+			title: 'Adding Permission Set...',
 		}, async (progress) => {
 			this.createMessage(false);
 
@@ -574,6 +626,8 @@ export class PageView{
 					this.permissionsToSelect.filter((e) => e.api !== permission);
 
 				this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
+
+				await this.loadApexClassPermissions(true);
 
 				if(isAddMetadata){
 					let listFields = new Array();
@@ -593,17 +647,26 @@ export class PageView{
 	}
 
 	private removePermission(permission: string){
-		this.permissionsToSelect.push(this.permissionsBase.filter(e => e.api === permission)[0]);
+		let permissionData = this.permissionsBase.filter(e => e.api === permission)[0];
+
+		this.permissionsToSelect.push(permissionData);
 
 		this.permissionsToSelect.sort((a, b) => a.label < b.label ? -1 : a.label > a.label ? 1 : 0);
 
 		this.selectedPermissions = this.selectedPermissions.filter(e => e.api !== permission);
 
+		// field
 		for(let [key] of this.fieldValues){
 			if(key.startsWith(permission +'.')){
 				this.fieldValues.delete(key);
 			}
 		}
+
+		// object
+		this.objectValues.delete(permissionData.id);
+
+		// apex class
+		this.apexClassValues.delete(permissionData.id);
 
 		this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
@@ -646,8 +709,8 @@ export class PageView{
 		if(listPermission){
 			this.selectedPermissions.forEach(permission =>{
 				listObjects.forEach(object =>{
-					let key1 = object;
-					let key2 = permission.id;
+					let key1 = permission.id;
+					let key2 = object;
 					
 					if(!this.objectValues.has(key1)){
 						this.objectValues.set(key1, new Map());
@@ -667,8 +730,8 @@ export class PageView{
 			});
 
 			listPermission.forEach((permission: any) =>{
-				let key1 = permission.SobjectType;
-				let key2 = permission.ParentId;
+				let key1 = permission.ParentId;
+				let key2 = permission.SobjectType;
 
 				this.objectValues.get(key1).get(key2).id = permission.Id;
 				this.objectValues.get(key1).get(key2).permissionId = permission.ParentId;
@@ -748,6 +811,13 @@ export class PageView{
 			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
 			listPermissionsToFilter.push(filterList(listResultObjectPermission, listPermissionsToFilter));
 
+			(await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass))
+			.forEach(permission =>{
+				if(!listPermissionsToFilter.includes(permission.parentId)){
+					listPermissionsToFilter.push(permission.parentId);
+				}
+			});
+
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
 			this.selectedPermissions = 
@@ -761,6 +831,16 @@ export class PageView{
 			this.createFieldPermissions(listResultFieldPermission, this.selectedFields);
 			this.creatObjectPermissions(listResultObjectPermission, this.listSelectedObjects);
 
+			await this.loadApexClassPermissions(true);
+
+			if(this.selectedFields.length){
+				this.setTabFocus(FOCUS_FIELD);
+			}else if(this.listSelectedObjects.length){
+				this.setTabFocus(FOCUS_OBJECT);
+			}else if(this.listSelectedApexClass.length){
+				this.setTabFocus(FOCUS_APEX_CLASS);
+			}
+
 			this._update();
 		});
 	}
@@ -768,7 +848,7 @@ export class PageView{
 	private addObject(object: string){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Adding object...',
+			title: 'Adding Object...',
 		}, async (progress) => {
 			this.createMessage(false);
 
@@ -818,7 +898,7 @@ export class PageView{
 			this.creatObjectPermissions(result.records, objects);
 			
 			if(isSetFocus){
-				this.setTabFocus(object);
+				this.setTabFocus(FOCUS_OBJECT, object);
 			}
 
 			this._update();
@@ -832,35 +912,99 @@ export class PageView{
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
 
-			this.setTabFocus('Field');
+			this.setTabFocus(FOCUS_OBJECT);
 			
 			this._update();
 		}
 	}
 
-	private setTabFocus(tab: string){
-		this.tabFocus = tab;
-
-		this._update();
+	private setTabFocus(tab: string, subTab?: string){
+		this.tabFocus = tab || '';
+		this.subTabFocus = subTab || '';
 	}
 
-	private async createRecords(records: Array<any>, object: string): Promise<any>{
-		if(records){
-			return await create(this.connection, object, records);
-		}else{
-			return null;
+	private addApexClass(apexClassId: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Apex Class...',
+		}, async (progress) => {
+			if(apexClassId){
+				if(!this.listSelectedApexClass.includes(apexClassId)){
+					this.listSelectedApexClass.push(apexClassId);
+					
+					this.listApexClassToSelect = this.listApexClassToSelect.filter(e => e.id !== apexClassId);
+					
+					await this.loadApexClassPermissions(this.selectedPermissions.length > 0);
+					
+					this._update();
+				}
+			}
+		});
+	}
+
+	private removeApexClass(apexClassId: string){
+		if(this.selectedPermissions.length){
+			this.selectedPermissions.forEach(permission =>{
+				this.apexClassValues.get(permission.id).delete(apexClassId);
+			});
 		}
+
+		this.listApexClassToSelect.push(this.mapApexClass.get(apexClassId));
+
+		this.listApexClassToSelect.sort((a,b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
+		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
+
+		this._panel.webview.postMessage({
+			command: 'JS-UPDATE-LIST-APEX-CLASS'
+			, text: this.listApexClassToSelect
+		});
 	}
 
-	private async updateRecords(records: Array<any>, object: string): Promise<any>{
-		if(records){
-			return await update(this.connection, object, records);
-		}else{
-			return null;
+	private async loadApexClassPermissions(checkPermission: boolean){
+		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
+
+		let listApexClassPermission = new Array();
+		
+		if(checkPermission){
+			listApexClassPermission = await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass, listIdPermissionSetToFilter);
 		}
+
+		listApexClassPermission.forEach(permission =>{
+			let key1 = permission.parentId;
+			let key2 = permission.apexClassId;
+
+			if(!this.apexClassValues.has(key1)){
+				this.apexClassValues.set(key1, new Map());
+			}
+	
+			if(!this.apexClassValues.get(key1).has(key2)){
+				this.apexClassValues.get(key1).set(key2, {id: permission.id, checked: true});
+			}
+		});
+
+		listIdPermissionSetToFilter.forEach(permissionId =>{
+			let key1 = permissionId;
+
+			if(!this.apexClassValues.has(key1)){
+				this.apexClassValues.set(key1, new Map());
+			}
+				
+			this.listSelectedApexClass.forEach(apexClassId =>{
+				let key2 = apexClassId;
+
+				if(!this.apexClassValues.get(key1).has(key2)){
+					this.apexClassValues.get(key1).set(key2, {id: null, checked: false});
+				}
+			});
+		});
 	}
 
-	private clear(){
+	private setApexClassValue(checked: boolean, parentId: string, apexClassId: string){
+		this.apexClassValues.get(parentId).get(apexClassId).checked = checked;
+	}
+
+	private clearField(){
 		this.selectedFields = new Array();
 
 		this.fieldValues = new Map();
@@ -871,6 +1015,93 @@ export class PageView{
 		});
 
 		this._update();
+	}
+
+	private clearApexClass(){
+		this.listSelectedApexClass = new Array();
+
+		this.listApexClassToSelect = [...this.listApexClassBase];
+
+		this.apexClassValues = new Map();
+
+		this._update();
+	}
+
+	private checkAllPermissionApexClass(checked: boolean, permissionId: string){
+		this.listSelectedApexClass.forEach(apexClass =>{
+			this.apexClassValues.get(permissionId).get(apexClass).checked = checked;
+		});
+	}
+
+	private saveApexClass(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving Apex Class...',
+		}, async (progress) => {
+			let listRecordsToCreate = new Array();
+			let listRecordsToDelete = new Array();
+			let recordsMap = new Map();
+			let listErrors = new Array();
+
+			for(let [key, value] of this.apexClassValues){
+				for(let [keyApexClass, valueApexClass] of this.apexClassValues.get(key)){
+					let record = {};
+					record.Id = valueApexClass.id;
+					record.ParentId = key;
+					record.SetupEntityId = keyApexClass;
+					
+					if(!record.Id && valueApexClass.checked){
+						listRecordsToCreate.push(record);
+					}else if(record.Id && !valueApexClass.checked){
+						listRecordsToDelete.push(record.Id);
+					}
+
+					recordsMap.set(record.Id, record);
+				}
+			}
+
+			if(listRecordsToCreate.length){
+				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+
+				for(let x in listResultCreate){
+					let result = listResultCreate[x];
+					let recordInfo = listRecordsToCreate[x];
+
+					if(result.success){
+						this.apexClassValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapApexClass.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+			
+			if(listRecordsToDelete.length){
+				let listResultDelete = await dml.remove(this.connection, 'SetupEntityAccess', listRecordsToDelete);
+
+				for(let x in listResultDelete){
+					let result = listResultDelete[x];
+					let recordInfo = recordsMap.get(listRecordsToDelete[x]);
+
+					if(result.success){
+						this.apexClassValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = null;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapApexClass.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+
+			this.endDML(listErrors);
+		});
+	}
+
+	private endDML(listErrors: Array<string>){
+		if(listErrors.length){
+			this.finallyDML(listErrors);
+		}else{
+			this.successMessage();
+
+			this._update();
+		}
 	}
 
 	private formatErrorMessage(error: any, name: string, additionalText?: string){
@@ -896,10 +1127,11 @@ export class PageView{
 
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Saving...',
+			title: 'Saving Fields...',
 		}, async (progress) => {
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
+			let listErrors = new Array();
 			let listRecordsToCreate = new Array();
 			let listRecordsToUpdate = new Array();
 
@@ -922,69 +1154,43 @@ export class PageView{
 				}
 			}
 
-			let errorList = new Array();
-
-			await this.createRecords(listRecordsToCreate, 'FieldPermissions')
-			.then((result: any) =>{
-				if(result){
-					let index = 0;
+			if(listRecordsToCreate.length){
+				let listResult = await dml.create(this.connection, 'FieldPermissions', listRecordsToCreate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToCreate[x];
 					
-					result.forEach((item: any) =>{
-						let record = listRecordsToCreate[index];
-
-						if(item.success){
-							let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
-
-							this.fieldValues.get(key).id = item.id;
-						}else{
-							errorList.push(this.formatErrorMessage(item.errors, record.Field));
-						}
-
-						index ++;
-					});
-				}
-			})
-			.catch(error =>{
-				errorList.push(error);
-			})
-			.finally(() =>{
-				this.updateRecords(listRecordsToUpdate, 'FieldPermissions')
-				.then((result: any) =>{
-					if(result){
-						let index = 0;
-		
-						result.forEach((item: any) =>{
-							let record = listRecordsToUpdate[index];
-
-							if(item.success){
-								if(!record.read && !record.edit){
-									let key = this.permissionsMap.get(record.ParentId).Name +'.'+ record.Field;
-
-									if(!record.PermissionsRead){
-										this.fieldValues.get(key).id = null;
-									}
-								}
-							}else{
-								errorList.push(this.formatErrorMessage(item.errors, record.Field));
-							}
-		
-							index ++;
-						});
-					}
-				})
-				.catch(error =>{
-					errorList.push(error);
-				})
-				.finally(() =>{
-					if(errorList.length){
-						this.finallyDML(errorList);
+					if(result.success){
+						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
+						
+						this.fieldValues.get(key).id = result.id;
 					}else{
-						this.successMessage();
-
-						this._update();
+						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
 					}
-				});
-			});
+				}
+			}
+
+			if(listRecordsToUpdate.length){
+				let listResult = await dml.update(this.connection, 'FieldPermissions', listRecordsToUpdate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToUpdate[x];
+					
+					if(!recordInfo.read && !recordInfo.edit){
+						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
+
+						if(!recordInfo.PermissionsRead){
+							this.fieldValues.get(key).id = null;
+						}
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
+					}
+				}
+			}
+		
+			this.endDML(listErrors);
 		});
 	}
 
@@ -1009,94 +1215,72 @@ export class PageView{
 	}
 
 	private saveObject(object: string, values: Array<any>){
-		let listToCreate = new Array();
-		let listToUpdate = new Array();
-
-		values.forEach(value =>{
-			let record = {};
-			record.Id = value.id;
-			record.ParentId = value.permissionId;
-			record.SObjectType = object;
-			record.PermissionsRead = value.read;
-			record.PermissionsCreate = value.create;
-			record.PermissionsEdit = value.edit;
-			record.PermissionsDelete = value.delete;
-			record.PermissionsViewAllRecords = value.viewAll;
-			record.PermissionsModifyAllRecords = value.modifyAll;
-
-			if(record.Id){
-				listToUpdate.push(record);
-			}else{
-				let allFalse = true;
-
-				new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
-				.forEach(field =>{
-					if(value[field]){
-						allFalse = false;
-					}
-				});
-
-				if(!allFalse){
-					listToCreate.push(record);
-				}
-			}
-		});
-
-		let errorList = new Array();
-
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
-			title: 'Saving...',
+			title: `Saving ${object} Object...`,
 		}, async (progress) => {
-			await this.createRecords(listToCreate, 'ObjectPermissions')
-			.then((resultCreate: any) =>{
-				if(resultCreate){
-					let index = 0;
-					
-					resultCreate.forEach((item: any) =>{
-						let record = listToCreate[index];
-						
-						if(item.success){
-							this.objectValues.get(object).get(record.ParentId).id = item.id;
-						}else{
-							errorList.push(this.formatErrorMessage(item.errors, object, this.permissionsMap.get(record.ParentId).Name));
+			let listErrors = new Array();
+			let listRecordsToCreate = new Array();
+			let listRecordsToUpdate = new Array();
+
+			values.forEach(value =>{
+				let record = {};
+				record.Id = value.id;
+				record.ParentId = value.permissionId;
+				record.SObjectType = object;
+				record.PermissionsRead = value.read;
+				record.PermissionsCreate = value.create;
+				record.PermissionsEdit = value.edit;
+				record.PermissionsDelete = value.delete;
+				record.PermissionsViewAllRecords = value.viewAll;
+				record.PermissionsModifyAllRecords = value.modifyAll;
+
+				if(record.Id){
+					listRecordsToUpdate.push(record);
+				}else{
+					let allFalse = true;
+
+					new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
+					.forEach(field =>{
+						if(value[field]){
+							allFalse = false;
 						}
-
-						index ++;
 					});
-				}
-			})
-			.catch(errorCreate =>{
-				errorList.push(errorCreate);
-			})
-			.finally(() =>{
-				this.updateRecords(listToUpdate, 'ObjectPermissions')
-				.then((resultUpdate: any) =>{
-					if(resultUpdate){
-						let index = 0;
-						
-						resultUpdate.forEach((item: any) =>{
-							if(!item.success){
-								errorList.push(this.formatErrorMessage(item.errors, object));
-							}
 
-							index ++;
-						});
+					if(!allFalse){
+						listRecordsToCreate.push(record);
 					}
-				})
-				.catch(errorUpdate =>{
-					errorList.push(errorUpdate);
-				})
-				.finally(() =>{
-					if(errorList.length){
-						this.finallyDML(errorList);
-					}else{
-						this.getObjectPermissions(object, true);
-						
-						this.successMessage();
-					}
-				});
+				}
 			});
+
+			if(listRecordsToCreate.length){
+				let listResult = await dml.create(this.connection, 'ObjectPermissions', listRecordsToCreate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					let recordInfo = listRecordsToCreate[x];
+					
+					if(result.success){
+						this.objectValues.get(object).get(record.ParentId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, object, this.permissionsMap.get(recordInfo.ParentId).Name));
+					}
+				}
+			}
+
+			if(listRecordsToUpdate.length){
+				let listResult = await dml.update(this.connection, 'ObjectPermissions', listRecordsToUpdate);
+				
+				for(let x in listResult){
+					let result = listResult[x];
+					
+					if(!result.success){
+						listErrors.push(this.formatErrorMessage(result.errors, object));
+					}
+				}
+			}
+
+			this.endDML(listErrors);
 		});
 	}
 
@@ -1116,17 +1300,44 @@ export class PageView{
 
 	private _getHtmlForWebview(webview: vscode.Webview){
 		if(PageView.currentPanel !== undefined){
-			const scriptUri = webview.asWebviewUri(
-				vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js')
-			);
+			let listScripts = new Array();
+			let listStyles = new Array();
 
-			const styleUri = webview.asWebviewUri(
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'main.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'field.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'object.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'connection.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'permissionSet.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'objectFieldModal.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'apexClass.js')
+			));
+
+			listStyles.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/css/', 'style.css')
-			);
+			));
 
-			const sldsUri = webview.asWebviewUri(
+			listStyles.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/slds/styles/', 'salesforce-lightning-design-system.css')
-			);
+			));
 
 			const loadingUri = webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/slds/images/spinners/', 'slds_spinner_brand.gif')
@@ -1135,9 +1346,8 @@ export class PageView{
 			let htmlClass = new html(
 				PageView.currentPanel, 
 				webview, 
-				scriptUri, 
-				styleUri, 
-				sldsUri, 
+				listScripts, 
+				listStyles, 
 				loadingUri, 
 				PROJECT_NAME
 			);
@@ -1200,9 +1410,19 @@ export class PageView{
 			, text: this.listObject
 		});
 
+		let tab = this.tabFocus || FOCUS_FIELD;
+		let subTab = this.subTabFocus || '';
+
+		if(tab === FOCUS_OBJECT && subTab === '' && this.listSelectedObjects.length){
+			subTab = this.listSelectedObjects[0];
+		}
+
 		this._panel.webview.postMessage({
 			command: 'SET-TAB-FOCUS'
-			, text: this.tabFocus || 'Field'
+			, text: {
+				tab: tab,
+				subTab: subTab
+			}
 		});
 
 		this._panel.webview.postMessage({
