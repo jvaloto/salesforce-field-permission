@@ -19,7 +19,7 @@ export function getContent(pageView: PageView){
                                         value="${pageView.selectedObject}"
                                     />`;
     
-                                    pageView.listObject.forEach((object: string) =>{
+                                    pageView.listObjectAll.forEach((object: string) =>{
                                         toReturn += `<option value="${object}">${object}</option>`;
                                     });
     

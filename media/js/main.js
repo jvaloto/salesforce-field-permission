@@ -103,6 +103,12 @@
       });
 
       showContent('tab-content-sub', subTab);
+    }else{
+      let listSubTab = document.querySelectorAll('.li-sub-tab');
+
+      if(listSubTab.length){
+        showContent('tab-content-sub', listSubTab[0].dataset.id);
+      }
     }
   }
   
