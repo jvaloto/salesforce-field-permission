@@ -27,13 +27,13 @@ export async function getAll(connection: jsforce.Connection){
     return listToReturn;
 }
 
-export async function getPermissions(connection: jsforce.Connection, listIdApexClass: Array<string>, listIdPermissionSet: Array<string>){
+export async function getPermissions(connection: jsforce.Connection, listIdApexClass: Array<string>, listIdPermissionSet?: Array<string>){
     let listToReturn = new Array();
 
     if(listIdApexClass.length){
         let parentFilter = '';
 
-        if(listIdPermissionSet.length){
+        if(listIdPermissionSet && listIdPermissionSet.length){
             parentFilter = ` AND ParentId IN ('${listIdPermissionSet.join("','")}')`;
         }
 

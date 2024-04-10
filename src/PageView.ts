@@ -14,6 +14,9 @@ const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
 const DEFAULT_FILTER_SOQL_PARENT = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
 const DEFAULT_FILTER_SOQL = " AND ( NOT Name LIKE 'X00e%' ) ";
+const FOCUS_FIELD = 'field';
+const FOCUS_OBJECT = 'object';
+const FOCUS_APEX_CLASS = 'apex-class';
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -529,7 +532,7 @@ export class PageView{
 				this.createFieldPermissions(resultFields.records, fields);
 
 				if(isSetFocus){
-					this.setTabFocus('field');
+					this.setTabFocus(FOCUS_FIELD);
 				}
 
 				this._update();
@@ -808,6 +811,13 @@ export class PageView{
 			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
 			listPermissionsToFilter.push(filterList(listResultObjectPermission, listPermissionsToFilter));
 
+			(await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass))
+			.forEach(permission =>{
+				if(!listPermissionsToFilter.includes(permission.parentId)){
+					listPermissionsToFilter.push(permission.parentId);
+				}
+			});
+
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
 			this.selectedPermissions = 
@@ -820,6 +830,16 @@ export class PageView{
 
 			this.createFieldPermissions(listResultFieldPermission, this.selectedFields);
 			this.creatObjectPermissions(listResultObjectPermission, this.listSelectedObjects);
+
+			await this.loadApexClassPermissions(true);
+
+			if(this.selectedFields.length){
+				this.setTabFocus(FOCUS_FIELD);
+			}else if(this.listSelectedObjects.length){
+				this.setTabFocus(FOCUS_OBJECT);
+			}else if(this.listSelectedApexClass.length){
+				this.setTabFocus(FOCUS_APEX_CLASS);
+			}
 
 			this._update();
 		});
@@ -878,7 +898,7 @@ export class PageView{
 			this.creatObjectPermissions(result.records, objects);
 			
 			if(isSetFocus){
-				this.setTabFocus('object', object);
+				this.setTabFocus(FOCUS_OBJECT, object);
 			}
 
 			this._update();
@@ -892,7 +912,7 @@ export class PageView{
 		if(object){
 			this.listSelectedObjects = this.listSelectedObjects.filter(e => e !== object);
 
-			this.setTabFocus('object');
+			this.setTabFocus(FOCUS_OBJECT);
 			
 			this._update();
 		}
@@ -1449,10 +1469,10 @@ export class PageView{
 			, text: this.listObject
 		});
 
-		let tab = this.tabFocus || 'field';
+		let tab = this.tabFocus || FOCUS_FIELD;
 		let subTab = this.subTabFocus || '';
 
-		if(tab === 'object' && subTab === '' && this.listSelectedObjects.length){
+		if(tab === FOCUS_OBJECT && subTab === '' && this.listSelectedObjects.length){
 			subTab = this.listSelectedObjects[0];
 		}
 
