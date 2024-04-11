@@ -1,6 +1,6 @@
 import { PageView } from "../PageView";
 
-export function getObjectFieldModalContent(pageView: PageView){
+export function getContent(pageView: PageView){
     let toReturn = ``;
 
     if(pageView.showModal){

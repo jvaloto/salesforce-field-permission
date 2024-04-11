@@ -5,53 +5,55 @@ const IDENTIFIER = 'object';
 var columnColor: number;
 
 export function getContent(pageView: PageView){
-    let toReturn = `
-            <div class="slds-tabs_default__content tab-content slds-hide" data-id="${IDENTIFIER}">
-                <article class="slds-card">
-                    <div class="slds-card__body slds-card__body_inner">
-                        <div class="slds-grid slds-gutters">
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Object API Name
-                                    </label>
-                                    <select 
-                                        id="input-${IDENTIFIER}" 
-                                        class="slds-input" 
-                                        value="${pageView.selectedObject}"
-                                    />`;
+    let toReturn = '';
     
-                                    pageView.listObjectToSelect.forEach(object =>{
-                                        toReturn += `<option value="${object}">${object}</option>`;
-                                    });
-    
-                                    toReturn += `
-                                    </select>
-                                </div>
+    toReturn += `
+        <div class="slds-tabs_default__content tab-content slds-hide" data-id="${IDENTIFIER}">
+            <article class="slds-card">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <select 
+                                    id="input-${IDENTIFIER}" 
+                                    class="slds-input" 
+                                    value="${pageView.selectedObject}"
+                                />`;
+
+                                pageView.listObjectToSelect.forEach(object =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
                         </div>
                     </div>
-                    <footer class="slds-card__footer">
-                        <button 
-                            id="button-add-${IDENTIFIER}" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Add selected object to set permissions"
-                        >
-                            Add Object
-                        </button>
-                    </footer>
-                </article>`;
-
-            toReturn += `
-                ${createTabs(pageView)}
-
-                ${createTabContent(pageView)}
-
                 </div>
-            `;
+                <footer class="slds-card__footer">
+                    <button 
+                        id="button-add-${IDENTIFIER}" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Add selected object to set permissions"
+                    >
+                        Add Object
+                    </button>
+                </footer>
+            </article>`;
 
-        return toReturn;
+        toReturn += `
+            ${createTabs(pageView)}
+
+            ${createTabContent(pageView)}
+
+            </div>
+        `;
+
+    return toReturn;
 }
 
 function createTabs(pageView: PageView){
