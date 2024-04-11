@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import { PageView } from './PageView';
 import * as htmlField from './html/htmlField';
 import * as htmlObject from './html/htmlObject';
-import { getConnectionContent } from './html/htmlConnection';
-import { getPermissionSetContent } from './html/htmlPermissionSet';
-import { getObjectFieldModalContent } from './html/htmlObjectFieldModal';
+import * as htmlConnection from './html/htmlConnection';
+import * as htmlPermissionSet from './html/htmlPermissionSet';
+import * as htmlObjectFieldModal from './html/htmlObjectFieldModal';
 import * as htmlApexClass from './html/htmlApexClass';
 
 export class html{
@@ -51,7 +51,7 @@ export class html{
                 <title>${this.projectName}</title>
             </head>
             <body>
-                ${getObjectFieldModalContent(this.pageView)}
+                ${htmlObjectFieldModal.getContent(this.pageView)}
         `;
 
         if(this.pageView.isLoading){
@@ -60,19 +60,16 @@ export class html{
                     <div class="slds-card__body slds-card__body_inner center">
                         <img src="${this.loadingUri}" class="center" width="50" />
                     </div>
-                    <footer class="slds-card__footer">
-                        ${this.pageView.loadingText}
-                    </footer>
                 </article>
             `;
         }else{
             toReturn += `
                 <div class="slds-grid slds-gutters">
                     <div class="slds-col slds-size_1-of-2"">
-                        ${getConnectionContent(this.pageView)}
+                        ${htmlConnection.getContent(this.pageView)}
                     </div>
                     <div class="slds-col slds-size_1-of-2">
-                        ${getPermissionSetContent(this.pageView)}
+                        ${htmlPermissionSet.getContent(this.pageView)}
                     </div>
                 </div>
 

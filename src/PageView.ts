@@ -7,13 +7,14 @@ import * as dml from './sf/sfDML';
 import { html } from './html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
 import * as sfObjectDAO from './sf/sfObjectDAO';
+import * as sfPermissionSetDAO from './sf/sfPermissionSetDAO';
+import { PermissionSet } from './type/PermissionSet';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
 const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
 const DEFAULT_FILTER_SOQL_PARENT = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
-const DEFAULT_FILTER_SOQL = " AND ( NOT Name LIKE 'X00e%' ) ";
 const FOCUS_FIELD = 'field';
 const FOCUS_OBJECT = 'object';
 const FOCUS_APEX_CLASS = 'apex-class';
@@ -29,7 +30,7 @@ export class PageView{
 
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
-	private permissionsBase: Array<any>;
+	private listPermissionSetBase: Array<PermissionSet>;
 	private listApexClassBase: Array<string>;
 	private tabFocus: string;
 	private subTabFocus: string;
@@ -95,7 +96,9 @@ export class PageView{
 		this.isConnected = false;
 		this.isLoading = true;
 		this.listApexClass = new Array();
+		this.listApexClassToSelect = new Map();
 		this.listFieldObject = new Array();
+		this.listObjectAll = new Array();
 		this.listObjectToSelect = new Array();
 		this.listSelectedApexClass = new Array();
 		this.listSelectedObjects = new Array();
@@ -104,7 +107,7 @@ export class PageView{
 		this.pageMessageIsActive = false;
 		this.pageMessageText = new Array();
 		this.pageMessageType = '';
-		this.permissionsBase = new Array();
+		this.listPermissionSetBase = new Array<PermissionSet>;
 		this.permissionsMap = new Map();
 		this.permissionsToSelect = new Array();
 		this.selectedFields = new Array();
@@ -122,7 +125,7 @@ export class PageView{
 
 		this.newInstance();
 
-		this.setLoading(true, 'Getting authenticated orgs...');
+		this.setLoading(true);
 
 		getOrgs()
 		.then(result =>{
@@ -167,10 +170,6 @@ export class PageView{
 						return;
 					case 'ADD-PERMISSION-SET':
 						this.addPermission(message.text);
-
-						return;
-					case 'REFRESH-PERMISSION-SET':
-						this.getPermissionSet();
 
 						return;
 					case 'ADD-FIELD':
@@ -314,100 +313,80 @@ export class PageView{
 		}
 	}
 
-	private setOrg(org: string){
-		this.createMessage(false);
+	private async setOrg(org: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification
+		}, async (progress) => {
+			progress.report({ message: "Loading..." });
 
-		this.org = org;
+			this.setLoading(true);
 
-		this.setLoading(true, 'Validating token...');
+			this.createMessage(false);
 
-		getConnection(org)
-		.then(result =>{
-			if(result.accessToken){
-				this.setDefaultOrg(this.checkedDefaultOrg);
+			this.newInstance();
 
-				this.newInstance();
+			this.org = org;
 
-				this.isConnected = true;
-				
-				this.connection = result;
-				
-				this.getPermissionSet();
-			}else{
-				this.isConnected = false;
+			this.setDefaultOrg(this.checkedDefaultOrg);
 
-				let errorMessage = `
-					Error on trying to connect to ${org} org.
-					Please re-authenticate and try again.
-				`;
+			this.connection = await getConnection(org);
 
-				this.message(MESSAGE_TYPE.ERROR, errorMessage);
+			progress.report({ message: "Loading Permission Sets..." });
+			
+			await this.loadPermissionSet();
 
-				this.setError(errorMessage);
-			}
-		})
-		.catch(error =>{
-			this.isConnected = false;
+			progress.report({ message: "Loading Objects..." });
+			
+			await this.loadObject();
 
-			this.setError(error);
+			progress.report({ message: "Loading Apex Class..." });
+			
+			await this.loadApexClass();
+
+			this.isConnected = true;
+
+			this.setLoading(false);
 		});
 	}
 
-	private getPermissionSet(){
-		this.setLoading(true, 'Creating list of permission sets...');
+	private async loadPermissionSet(){
+		this.listPermissionSetBase = await sfPermissionSetDAO.getAll(this.connection);
 
-		query(this.connection, `
-			SELECT Id
-				, Label 
-				, Name 
-			FROM PermissionSet 
-			WHERE IsCustom = true 
-				${DEFAULT_FILTER_SOQL}
-			ORDER BY Label ASC
-		`)
-		.then(resultPermissions =>{
-			resultPermissions.records.forEach((permission: any) =>{
-				this.permissionsMap.set(permission.Id, permission);
+		this.listPermissionSetBase.forEach((permission: PermissionSet) =>{
+			this.permissionsMap.set(permission.id, permission);
+		});
 
-				this.permissionsBase.push({ 
-					id: permission.Id, 
-					label: permission.Label, 
-					api: permission.Name,
-					read: false,
-					edit: false
-				});
+		this.listPermissionSetBase.sort((a, b) => a.label < b.label ? -1 : a.label > a.label ? 1 : 0);
+
+		let setDefaultPermissionSet = this.getConfig(LOCAL_STORAGE_PERMISSION_SET);
+
+		this.permissionsToSelect = [...this.listPermissionSetBase];
+
+		if(setDefaultPermissionSet && JSON.parse(setDefaultPermissionSet).length > 0){
+			this.checkedDefaultPermissionSet = true;
+			
+			JSON.parse(setDefaultPermissionSet).forEach((permission: any) =>{
+				if(this.permissionsToSelect.filter(e => e.id === permission.id)?.length){
+					this.addPermission(permission.api, false);
+				}
 			});
+		}else{
+			this.checkedDefaultPermissionSet = false;
+		}
+	}
 
-			this.permissionsBase.sort((a, b) => a.label < b.label ? -1 : a.label > a.label ? 1 : 0);
+	private async loadObject(){
+		this.listObjectAll = await sfObjectDAO.getAll(this.connection);
+		this.listObjectToSelect = [...this.listObjectAll];
+	}
 
-			let setDefaultPermissionSet = this.getConfig(LOCAL_STORAGE_PERMISSION_SET);
+	private async loadApexClass(){
+		this.listApexClassBase = await sfApexClassDAO.getAll(this.connection);
 
-			this.permissionsToSelect = [...this.permissionsBase];
+		this.listApexClassToSelect = [...this.listApexClassBase];
 
-			if(setDefaultPermissionSet && JSON.parse(setDefaultPermissionSet).length > 0){
-				this.checkedDefaultPermissionSet = true;
-				
-				JSON.parse(setDefaultPermissionSet).forEach((permission: any) =>{
-					if(this.permissionsToSelect.filter(e => e.id === permission.id)?.length){
-						this.addPermission(permission.api, false);
-					}
-				});
-			}else{
-				this.checkedDefaultPermissionSet = false;
-			}
-
-			this.getListObjects()
-			.then(() =>{
-				this.loadApexClass()
-				.then(() =>{
-					this.setLoading(false);
-					
-					this._update();
-				});
-			});
-		})
-		.catch(error =>{
-			this.setError(error);
+		this.listApexClassToSelect.forEach((apexClass: any) =>{
+			this.mapApexClass.set(apexClass.id, apexClass);
 		});
 	}
 
@@ -437,21 +416,6 @@ export class PageView{
 					await this.addMetadata([keyField], listIdPermission, true);
 				}
 			}
-		});
-	}
-
-	private async getListObjects(){
-		this.listObjectAll = await sfObjectDAO.getAll(this.connection);
-		this.listObjectToSelect = [...this.listObjectAll];
-	}
-
-	private async loadApexClass(){
-		this.listApexClassBase = await sfApexClassDAO.getAll(this.connection);
-
-		this.listApexClassToSelect = [...this.listApexClassBase];
-
-		this.listApexClassToSelect.forEach((apexClass: any) =>{
-			this.mapApexClass.set(apexClass.id, apexClass);
 		});
 	}
 
@@ -611,7 +575,7 @@ export class PageView{
 			this.createMessage(false);
 
 			if(permission){
-				let permissionRecord = this.permissionsBase.filter((e) => e.api === permission)[0];
+				let permissionRecord = this.listPermissionSetBase.filter((e) => e.api === permission)[0];
 
 				this.selectedPermissions.push(permissionRecord);
 				
@@ -640,7 +604,7 @@ export class PageView{
 	}
 
 	private removePermission(permission: string){
-		let permissionData = this.permissionsBase.filter(e => e.api === permission)[0];
+		let permissionData = this.listPermissionSetBase.filter(e => e.api === permission)[0];
 
 		this.permissionsToSelect.push(permissionData);
 
@@ -765,7 +729,7 @@ export class PageView{
 			let listResultApexClassPermission;
 			this.selectedPermissions = new Array();
 			this.permissionsToSelect = new Array();
-			this.permissionsToSelect = [...this.permissionsBase];
+			this.permissionsToSelect = [...this.listPermissionSetBase];
 
 			await query(this.connection, `
 			SELECT Id
@@ -831,7 +795,7 @@ export class PageView{
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
 			this.selectedPermissions = 
-				this.permissionsBase.filter((e) => listPermissionsToFilter.includes(e.id));
+				this.listPermissionSetBase.filter((e) => listPermissionsToFilter.includes(e.id));
 
 			this.selectedPermissions.sort((a,b) => a.label > b.label ? 1 : a.label < b.label ? -1 : 0);
 

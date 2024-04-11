@@ -3,70 +3,72 @@ import { PageView } from "../PageView";
 var columnColor: number;
 
 export function getContent(pageView: PageView){
-    let toReturn = `
-            <div class="slds-tabs_default__content tab-content" data-id="field">
-                <article class="slds-card">
-                    <div class="slds-card__body slds-card__body_inner">
-                        <div class="slds-grid slds-gutters">
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Object API Name
-                                    </label>
-                                    <select 
-                                        id="input-object-field" 
-                                        class="slds-input" 
-                                        value="${pageView.selectedObject}"
-                                    />`;
+    let toReturn = '';
     
-                                    pageView.listObjectAll.forEach((object: string) =>{
-                                        toReturn += `<option value="${object}">${object}</option>`;
-                                    });
-    
-                                    toReturn += `
-                                    </select>
-                                </div>
+    toReturn += `
+        <div class="slds-tabs_default__content tab-content" data-id="field">
+            <article class="slds-card">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <select 
+                                    id="input-object-field" 
+                                    class="slds-input" 
+                                    value="${pageView.selectedObject}"
+                                />`;
+
+                                pageView.listObjectAll.forEach((object: string) =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
-    
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Field API Name
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="input-field" 
-                                        class="slds-input" 
-                                    />
-                                </div>
+                        </div>
+
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Field API Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="input-field" 
+                                    class="slds-input" 
+                                />
                             </div>
                         </div>
                     </div>
-                    <footer class="slds-card__footer">
-                        <button 
-                            id="button-add-field-object" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Select mass fields by object to set permissions"
-                        >
-                            Add Fields by Object
-                        </button>
-                        
-                        <button 
-                            id="button-add-field" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Add selected field to set permissions"
-                        >
-                            Add Field
-                        </button>
-                    </footer>
-                </article>
-                ${createTable(pageView)}
-            </div>
-        `;
+                </div>
+                <footer class="slds-card__footer">
+                    <button 
+                        id="button-add-field-object" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Select mass fields by object to set permissions"
+                    >
+                        Add Fields by Object
+                    </button>
+                    
+                    <button 
+                        id="button-add-field" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Add selected field to set permissions"
+                    >
+                        Add Field
+                    </button>
+                </footer>
+            </article>
+            ${createTable(pageView)}
+        </div>
+    `;
 
-        return toReturn;
+    return toReturn;
 }
 
 function createTable(pageView: PageView){
