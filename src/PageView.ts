@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as vscode from 'vscode';
 import { getConnection, getOrgs } from './connection';
-import jsforce, { Apex } from 'jsforce';
+import jsforce from 'jsforce';
 import * as dml from './sf/sfDML';
 import { html } from './html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
