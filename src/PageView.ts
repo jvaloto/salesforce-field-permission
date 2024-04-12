@@ -202,7 +202,7 @@ export class PageView{
 
 						return;
 					case 'REMOVE-FIELD':
-						this.removeField(message.text.permissionId, message.text.field);
+						this.removeField(message.text.field);
 
 						return;
 					case 'REMOVE-PERMISSION':
@@ -503,12 +503,11 @@ export class PageView{
 		}
 	}
 
-	// TODO: error on remove last field when has selected permissions
-	private removeField(permissionId: string, field: string){
+	private removeField(field: string){
 		this.selectedFields = this.selectedFields.filter(e => e !== field);
 
-		this.selectedPermissions.forEach(permissionId =>{
-			this.fieldValues.get(permissionId).delete(field.toUpperCase());
+		this.selectedPermissions.forEach(permission =>{
+			this.fieldValues.get(permission.id).delete(field.toUpperCase());
 		});
 	}
 

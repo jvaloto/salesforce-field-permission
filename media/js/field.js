@@ -37,12 +37,10 @@
     document.querySelectorAll(".button-remove-field").forEach(item =>{
         item.addEventListener('click', (event) =>{
             let field = event.target.dataset.field;
-            let permissionId = event.target.dataset.permission;
 
             vscode.postMessage({
                 command: 'REMOVE-FIELD',
                 text: {
-                    'permissionId': permissionId,
                     'field': field
                 }
             });
