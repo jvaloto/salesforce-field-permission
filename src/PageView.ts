@@ -12,6 +12,7 @@ import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
 import { ApexClass } from './type/ApexClass';
+import { FieldPermissions } from './type/FieldPermissions';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -1047,19 +1048,18 @@ export class PageView{
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
 			let listErrors = new Array();
-			let listRecordsToCreate = new Array();
-			let listRecordsToUpdate = new Array();
+			let listRecordsToCreate = new Array<FieldPermissions>;
+			let listRecordsToUpdate = new Array<FieldPermissions>;
 
 			for(let [key, value] of this.fieldValues){
 				for(let [keyField, valueField] of value){
-					let record = {
-						Id: valueField.id,
-						ParentId: valueField.permissionId,
-						Field: valueField.name,
-						PermissionsRead: valueField.read,
-						PermissionsEdit: valueField.edit,
-						SObjectType: valueField.object
-					};
+					let record: FieldPermissions = {};
+					record.Id = valueField.id;
+					record.ParentId = valueField.permissionId;
+					record.Field = valueField.name;
+					record.PermissionsRead = valueField.read;
+					record.PermissionsEdit = valueField.edit;
+					record.SObjectType = valueField.object;
 
 					if(valueField.id){
 						listRecordsToUpdate.push(record);
