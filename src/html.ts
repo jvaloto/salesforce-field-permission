@@ -59,7 +59,17 @@ export class html{
                 <article class="slds-card">
                     <div class="slds-card__body slds-card__body_inner center">
                         <img src="${this.loadingUri}" class="center" width="50" />
-                    </div>
+                    </div>`;
+                
+            if(this.pageView.loadingText){
+                toReturn += `
+                    <footer class="slds-card__footer">
+                        ${this.pageView.loadingText}
+                    </footer>
+                `;
+            }
+
+            toReturn += `
                 </article>
             `;
         }else{
