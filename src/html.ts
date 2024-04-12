@@ -107,9 +107,9 @@ export class html{
 
         if(this.pageView.isConnected){
             toReturn = `
-                ${this.createOptionsTab()}
-
                 ${this.createHtmlMessage()}
+
+                ${this.createOptionsTab()}
 
                 ${this.createTabContent()}
             `;
