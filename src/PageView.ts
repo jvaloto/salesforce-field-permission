@@ -1006,15 +1006,15 @@ export class PageView{
 				}
 			}
 
-			this.endDML(listErrors);
+			this.endDML('Apex Class', listErrors);
 		});
 	}
 
-	private endDML(listErrors: Array<string>){
+	private endDML(type: string, listErrors: Array<string>){
 		if(listErrors.length){
 			this.finallyDML(listErrors);
 		}else{
-			this.successMessage();
+			this.successMessage(type);
 
 			this._update();
 		}
@@ -1107,7 +1107,7 @@ export class PageView{
 				}
 			}
 		
-			this.endDML(listErrors);
+			this.endDML('Fields', listErrors);
 		});
 	}
 
@@ -1127,8 +1127,8 @@ export class PageView{
 		}
 	}
 
-	private successMessage(){
-		this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
+	private successMessage(type: string){
+		this.createMessage(true, MESSAGE_TYPE.SUCCESS, `${type}: Your changes are saved`);
 	}
 
 	private setObjectValue(permissionId: string, object: string, read: boolean, create: boolean, edit: boolean, del: boolean, viewAll: boolean, modifyAll: boolean){
@@ -1213,7 +1213,7 @@ export class PageView{
 				}
 			}
 
-			this.endDML(listErrors);
+			this.endDML(object, listErrors);
 		});
 	}
 
