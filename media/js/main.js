@@ -20,11 +20,11 @@
 
   document.querySelectorAll(".button-remove-permission").forEach(item =>{
     item.addEventListener('click', (event) =>{
-      let permissionSet = event.target.dataset.permission;
+      let permissionId = event.target.dataset.permission;
 
       vscode.postMessage({
         command: 'REMOVE-PERMISSION',
-        text: permissionSet
+        text: permissionId
       });
     });
   });
@@ -111,5 +111,29 @@
       }
     }
   }
-  
 }());
+
+function getValues(type, value){
+  let mapToReturn = new Map();
+  let read;
+  let edit;
+
+  if(type === 'edit'){
+    edit = value;
+
+    if(value){
+      read = value;
+    }
+  }else{ // read
+    if(!value){
+      edit = value;
+    }
+
+    read = value;
+  }
+
+  mapToReturn.set('read', read);
+  mapToReturn.set('edit', edit);
+
+  return mapToReturn;
+}

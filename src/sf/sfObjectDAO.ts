@@ -1,5 +1,6 @@
 import jsforce from 'jsforce';
 import { executeCommand } from "../cmd";
+import { ObjectPermission } from '../type/ObjectPermission';
 
 export async function getAll(connection: jsforce.Connection){
     let listToReturn = new Array();
@@ -40,7 +41,7 @@ export async function getFields(org: string, object: string){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listObject: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array();
+    let listToReturn = new Array<ObjectPermission>;
     let parentFilter = '';
 
     if(listObject.length){
@@ -68,17 +69,19 @@ export async function getPermissions(connection: jsforce.Connection, listObject:
         await connection.query(soql)
         .then(result =>{
             result.records.forEach((record: any) =>{
-                listToReturn.push({
-                    id: record.Id,
-                    parentId: record.ParentId,
-                    object: record.SobjectType,
-                    read: record.PermissionsRead,
-                    create: record.PermissionsCreate,
-                    edit: record.PermissionsEdit,
-                    delete: record.PermissionsDelete,
-                    viewAll: record.PermissionsViewAllRecords,
-                    modifyAll: record.PermissionsModifyAllRecords
-                });
+                // @ts-ignore
+                let newRecord: ObjectPermission = {};
+                newRecord.id = record.Id;
+                newRecord.permissionId = record.ParentId;
+                newRecord.object = record.SobjectType;
+                newRecord.read = record.PermissionsRead;
+                newRecord.create = record.PermissionsCreate;
+                newRecord.edit = record.PermissionsEdit;
+                newRecord.delete = record.PermissionsDelete;
+                newRecord.viewAll = record.PermissionsViewAllRecords;
+                newRecord.modifyAll = record.PermissionsModifyAllRecord;
+
+                listToReturn.push(newRecord);
             });
         });
     }

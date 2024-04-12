@@ -81,7 +81,7 @@ function createTable(pageView: PageView){
                     <button
                         type="button" 
                         class="icon-remove button-remove-permission"
-                        data-permission="${permission.api}"
+                        data-permission="${permission.id}"
                     >
                         x
                     </button>
