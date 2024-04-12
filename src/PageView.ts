@@ -1,6 +1,5 @@
 // @ts-nocheck
 import * as vscode from 'vscode';
-import { query } from './soql';
 import { getConnection, getOrgs } from './connection';
 import jsforce from 'jsforce';
 import * as dml from './sf/sfDML';
@@ -8,13 +7,14 @@ import { html } from './html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
 import * as sfObjectDAO from './sf/sfObjectDAO';
 import * as sfPermissionSetDAO from './sf/sfPermissionSetDAO';
+import * as sfFieldDAO from './sf/sfFieldDAO';
 import { PermissionSet } from './type/PermissionSet';
+import { FieldPermission } from './type/FieldPermission';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
 const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
-const DEFAULT_FILTER_SOQL_PARENT = " AND ( NOT Parent.Name LIKE 'X00e%' ) ";
 const FOCUS_FIELD = 'field';
 const FOCUS_OBJECT = 'object';
 const FOCUS_APEX_CLASS = 'apex-class';
@@ -125,7 +125,7 @@ export class PageView{
 
 		this.newInstance();
 
-		this.setLoading(true);
+		this.setLoading(true, PROJECT_NAME);
 
 		getOrgs()
 		.then(result =>{
@@ -188,16 +188,21 @@ export class PageView{
 						this.addListFields(message.text);
 
 						return;
-					case 'CHANGE-VALUE':
-						this.setValue(message.text.checked, message.text.type, message.text.permission, message.text.field);
+					case 'CHANGE-FIELD-VALUE':
+						this.setFieldValue(
+							message.text.permissionId, 
+							message.text.field, 
+							message.text.read, 
+							message.text.edit
+						);
 
 						return;
-					case 'CHANGE-VALUE-ALL':
-						this.setValueAll(message.text.checked, message.text.type, message.text.permission);
+					case 'CHANGE-FIELD-VALUE-ALL':
+						this.setFieldValueAll(message.text.permissionId, message.text.read, message.text.edit);
 
 						return;
 					case 'REMOVE-FIELD':
-						this.removeField(message.text);
+						this.removeField(message.text.permissionId, message.text.field);
 
 						return;
 					case 'REMOVE-PERMISSION':
@@ -345,6 +350,16 @@ export class PageView{
 
 			this.isConnected = true;
 
+
+
+
+			// TODO: remove after tests
+			this.addField('Account', 'Active__c');
+
+
+
+
+
 			this.setLoading(false);
 		});
 	}
@@ -414,6 +429,8 @@ export class PageView{
 					});
 
 					await this.addMetadata([keyField], listIdPermission, true);
+
+					this._update();
 				}
 			}
 		});
@@ -462,6 +479,8 @@ export class PageView{
 			this.showModal = false;
 
 			this.addMetadata(listFields, []);
+
+			this._update();
 		});
 	}
 
@@ -471,100 +490,41 @@ export class PageView{
 				permissions = this.getValueFromList(this.selectedPermissions, 'id');
 			}
 
-			query(this.connection, `
-				SELECT Id
-					, Field
-					, Parent.Name
-					, ParentId
-					, PermissionsEdit 
-					, PermissionsRead
-					, SobjectType
-				FROM FieldPermissions 
-				WHERE Parent.IsCustom = true
-					AND ParentId IN ('${permissions.join("','")}') 
-					AND Field IN ('${fields.join("','")}')
-					${DEFAULT_FILTER_SOQL_PARENT}
-			`)
-			.then(resultFields =>{
-				this.createFieldPermissions(resultFields.records, fields);
+			if(permissions.length){
+				let listResult = 
+					await sfFieldDAO.getPermissions(this.connection, fields, permissions);
+				
+				this.createFieldPermissions(listResult, fields);
+			}
 
-				if(isSetFocus){
-					this.setTabFocus(FOCUS_FIELD);
-				}
-
-				this._update();
-			})
-			.catch(errorFields =>{
-				this.setError(errorFields);
-			});
+			if(isSetFocus){
+				this.setTabFocus(FOCUS_FIELD);
+			}
 		}
 	}
 
-	private removeField(field: string){
+	// TODO: error on remove last field when has selected permissions
+	private removeField(permissionId: string, field: string){
 		this.selectedFields = this.selectedFields.filter(e => e !== field);
 
-		this.selectedPermissions.forEach(permission =>{
-			this.fieldValues.delete(permission.api +'.'+ field);
+		this.selectedPermissions.forEach(permissionId =>{
+			this.fieldValues.get(permissionId).delete(field.toUpperCase());
 		});
 	}
 
-	private setValue(checked: boolean, type: string, permission: string, field: string){
+	private setFieldValue(permissionId: string, field: string, read: boolean, edit: boolean){
 		this.createMessage(false);
+		field = field.toUpperCase();
 
-		let key = permission +'.'+ field;
-
-		let value = this.fieldValues.get(key);
-
-		if(type === 'edit'){
-			value.edit = checked;
-			
-			if(checked){
-				value.read = checked;
-			}
-		}else{ // read
-			if(!checked){
-				value.edit = checked;
-			}
-
-			value.read = checked;
-		}
-		
-		this.fieldValues.set(key, value);
-
-		this._update();
+		this.fieldValues.get(permissionId).get(field).read = read;
+		this.fieldValues.get(permissionId).get(field).edit = edit;
 	}
 
-	private setValueAll(checked: boolean, type: string, permission: string){
-		this.createMessage(false);
-
-		let read = false;
-		let edit = false;
-
-		if(type === 'edit'){
-			edit = checked;
-			
-			if(checked){
-				read = checked;
-			}
-		}else{ // read
-			if(!checked){
-				edit = checked;
-			}
-			
-			read = checked;
+	private setFieldValueAll(permissionId: string, read: boolean, edit: boolean){
+		for(let [keyField, valueField] of this.fieldValues.get(permissionId)){
+			valueField.read = read;
+			valueField.edit = edit;
 		}
-		
-		this.selectedPermissions.filter(e => e.api === permission)[0].read = read;
-		this.selectedPermissions.filter(e => e.api === permission)[0].edit = edit;
-
-		for(let [key, value] of this.fieldValues){
-			if(key.startsWith(permission + '.')){
-				this.fieldValues.get(key).read = read;
-				this.fieldValues.get(key).edit = edit;
-			}
-		}
-
-		this._update();
 	}
 
 	private addPermission(permission: any, isAddMetadata:boolean = true){
@@ -575,7 +535,8 @@ export class PageView{
 			this.createMessage(false);
 
 			if(permission){
-				let permissionRecord = this.listPermissionSetBase.filter((e) => e.api === permission)[0];
+				let permissionRecord = 
+					this.listPermissionSetBase.filter((e) => e.api === permission)[0];
 
 				this.selectedPermissions.push(permissionRecord);
 				
@@ -587,13 +548,7 @@ export class PageView{
 				await this.loadApexClassPermissions(true);
 
 				if(isAddMetadata){
-					let listFields = new Array();
-					
-					this.selectedFields.forEach(field =>{
-						listFields.push(field);
-					});
-					
-					await this.addMetadata(listFields, [permissionRecord.id]);
+					await this.addMetadata(this.selectedFields, [permissionRecord.id]);
 
 					await this.getObjectPermissions();
 				}
@@ -603,63 +558,69 @@ export class PageView{
 		});
 	}
 
-	private removePermission(permission: string){
-		let permissionData = this.listPermissionSetBase.filter(e => e.api === permission)[0];
+	private removePermission(permissionId: string){
+		let permissionData = this.listPermissionSetBase.filter(e => e.id === permissionId)[0];
 
 		this.permissionsToSelect.push(permissionData);
 
 		this.permissionsToSelect.sort((a, b) => a.label < b.label ? -1 : a.label > a.label ? 1 : 0);
 
-		this.selectedPermissions = this.selectedPermissions.filter(e => e.api !== permission);
+		this.selectedPermissions = this.selectedPermissions.filter(e => e.id !== permissionId);
 
 		// field
-		for(let [key] of this.fieldValues){
-			if(key.startsWith(permission +'.')){
-				this.fieldValues.delete(key);
-			}
-		}
+		this.fieldValues.delete(permissionId);
 
 		// object
-		this.objectValues.delete(permissionData.id);
+		this.objectValues.delete(permissionId);
 
 		// apex class
-		this.apexClassValues.delete(permissionData.id);
+		this.apexClassValues.delete(permissionId);
 
+		// continue the process
 		this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
 		this._update();
 	}
 
-	private createFieldPermissions(listPermission: Array<any>, listFields: Array<string>){
-		if(listPermission){
-			listPermission.forEach((permission: any) =>{
-				this.fieldValues.set(permission.Parent.Name +'.'+ permission.Field, { 
-					id: permission.Id, 
-					permission: permission.Parent.Name,
-					permissionId: permission.ParentId,
-					field: permission.Field, 
-					read: permission.PermissionsRead, 
-					edit: permission.PermissionsEdit
-				});
-			});
+	private createFieldPermissions(listPermission: Array<FieldPermission>, listFields: Array<string>){
+		if(listPermission.length){
+			listPermission.forEach((permission: FieldPermission) =>{
+				let key1 = permission.permissionId;
+				let key2 = permission.name.toUpperCase();
 
-			listFields.forEach(field =>{
-				this.selectedPermissions.forEach(permission =>{
-					let keyValue = permission.api +'.'+ field;
+				if(!this.fieldValues.has(key1)){
+					this.fieldValues.set(key1, new Map());
+				}
 
-					if(!this.fieldValues.has(keyValue)){
-						this.fieldValues.set(keyValue, {
-							id: null, 
-							permission: permission.api, 
-							permissionId: permission.id,
-							field: field, 
-							read: false, 
-							edit: false
-						});
-					}
-				});
+				if(!this.fieldValues.get(key1).has(key2)){
+					this.fieldValues.get(key1).set(key2, permission);
+				}
 			});
 		}
+
+		listFields.forEach(field =>{
+			this.selectedPermissions.forEach(permission =>{
+				let key1 = permission.id;
+				let key2 = field.toUpperCase();
+
+				if(!this.fieldValues.has(key1)){
+					this.fieldValues.set(key1, new Map());
+				}
+
+				if(!this.fieldValues.get(key1).has(key2)){
+					let fieldPermission: FieldPermission = {};
+					fieldPermission.id = null;
+					fieldPermission.permissionId = permission.id;
+					fieldPermission.object = field.split('.')[0];
+					fieldPermission.field = field.split('.')[1];
+					fieldPermission.name = field;
+					fieldPermission.read = false;
+					fieldPermission.edit = false;
+					
+					this.fieldValues.get(key1).set(key2, fieldPermission);
+				}
+			});
+		});
 	}
 
 	private creatObjectPermissions(listPermission: Array<any>, listObjects: Array<string>){
@@ -731,40 +692,10 @@ export class PageView{
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.listPermissionSetBase];
 
-			await query(this.connection, `
-			SELECT Id
-				, Field
-				, Parent.Label
-				, Parent.Name
-				, ParentId
-				, PermissionsEdit 
-				, PermissionsRead
-				, SobjectType
-			FROM FieldPermissions 
-			WHERE Parent.IsCustom = true
-				AND Field IN ('${this.selectedFields.join("','")}')
-				${DEFAULT_FILTER_SOQL_PARENT}
-			`)
-			.then(result =>{
-				listResultFieldPermission = result.records;
-			});
-
 			const filterList = function(records, permissions){
 				if(records){
 					records.forEach((permission: any) =>{
-						if(!permissions.includes(permission.ParentId)){
-							permissions.push(permission.ParentId);
-						}
-					});
-				}
-			};
-			
-			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
-			
-			const filterListTemporary = function(records, permissions){
-				if(records){
-					records.forEach((permission: any) =>{
-						let value = permission.parentId;
+						let value = permission.permissionId;
 
 						if(!permissions.includes(value)){
 							permissions.push(value);
@@ -775,12 +706,18 @@ export class PageView{
 				return permissions;
 			};
 			
+			// field
+			listResultFieldPermission = 
+				await sfFieldDAO.getPermissions(this.connection, this.selectedFields);
+
+			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
+			
 			// object
 			listResultObjectPermission = 
 				await sfObjectDAO.getPermissions(this.connection, this.listSelectedObjects);
 
 			listPermissionsToFilter.push(
-				filterListTemporary(listResultObjectPermission, listPermissionsToFilter)
+				filterList(listResultObjectPermission, listPermissionsToFilter)
 			);
 			
 			// apex class
@@ -788,7 +725,7 @@ export class PageView{
 				await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass);
 
 			listPermissionsToFilter.push(
-				filterListTemporary(listResultApexClassPermission, listPermissionsToFilter)
+				filterList(listResultApexClassPermission, listPermissionsToFilter)
 			);
 
 			// default process
@@ -1090,12 +1027,12 @@ export class PageView{
 	};
 
 	private saveFields(){
-		this.createMessage(false);
-
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Fields...',
 		}, async (progress) => {
+			this.createMessage(false);
+
 			this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
 			let listErrors = new Array();
@@ -1103,35 +1040,38 @@ export class PageView{
 			let listRecordsToUpdate = new Array();
 
 			for(let [key, value] of this.fieldValues){
-				let record = {
-					Id: value.id,
-					ParentId: value.permissionId,
-					Field: value.field,
-					PermissionsRead: value.read,
-					PermissionsEdit: value.edit,
-					SObjectType: value.field.split('.')[0]
-				};
+				for(let [keyField, valueField] of value){
+					let record = {
+						Id: valueField.id,
+						ParentId: valueField.permissionId,
+						Field: valueField.name,
+						PermissionsRead: valueField.read,
+						PermissionsEdit: valueField.edit,
+						SObjectType: valueField.object
+					};
 
-				if(value.id){
-					listRecordsToUpdate.push(record);
-				}else{
-					if(value.read){
-						listRecordsToCreate.push(record);
+					if(valueField.id){
+						listRecordsToUpdate.push(record);
+					}else{
+						if(valueField.read){
+							listRecordsToCreate.push(record);
+						}
 					}
 				}
 			}
 
 			if(listRecordsToCreate.length){
-				let listResult = await dml.create(this.connection, 'FieldPermissions', listRecordsToCreate);
+				let listResult = 
+					await dml.create(this.connection, 'FieldPermissions', listRecordsToCreate);
 				
 				for(let x in listResult){
 					let result = listResult[x];
 					let recordInfo = listRecordsToCreate[x];
+					let key1 = recordInfo.ParentId;
+					let key2 = recordInfo.Field.toUpperCase();
 					
 					if(result.success){
-						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
-						
-						this.fieldValues.get(key).id = result.id;
+						this.fieldValues.get(key1).get(key2).id = result.id;
 					}else{
 						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
 					}
@@ -1139,19 +1079,18 @@ export class PageView{
 			}
 
 			if(listRecordsToUpdate.length){
-				let listResult = await dml.update(this.connection, 'FieldPermissions', listRecordsToUpdate);
+				let listResult = 
+					await dml.update(this.connection, 'FieldPermissions', listRecordsToUpdate);
 				
 				for(let x in listResult){
 					let result = listResult[x];
 					let recordInfo = listRecordsToUpdate[x];
-					
-					if(!recordInfo.read && !recordInfo.edit){
-						let key = this.permissionsMap.get(recordInfo.ParentId).Name +'.'+ recordInfo.Field;
+					let key1 = recordInfo.ParentId;
+					let key2 = recordInfo.Field.toUpperCase();
 
-						if(!recordInfo.PermissionsRead){
-							this.fieldValues.get(key).id = null;
-						}
-					}else{
+					if(!recordInfo.PermissionsRead && !recordInfo.PermissionsEdit){
+						this.fieldValues.get(key1).get(key2).id = null;
+					}else if(!result.success){
 						listErrors.push(this.formatErrorMessage(result.errors, recordInfo.Field));
 					}
 				}
@@ -1224,7 +1163,8 @@ export class PageView{
 			});
 
 			if(listRecordsToCreate.length){
-				let listResult = await dml.create(this.connection, 'ObjectPermissions', listRecordsToCreate);
+				let listResult = 
+					await dml.create(this.connection, 'ObjectPermissions', listRecordsToCreate);
 				
 				for(let x in listResult){
 					let result = listResult[x];
@@ -1239,7 +1179,8 @@ export class PageView{
 			}
 
 			if(listRecordsToUpdate.length){
-				let listResult = await dml.update(this.connection, 'ObjectPermissions', listRecordsToUpdate);
+				let listResult = 
+					await dml.update(this.connection, 'ObjectPermissions', listRecordsToUpdate);
 				
 				for(let x in listResult){
 					let result = listResult[x];

@@ -1,12 +1,14 @@
 import { PageView } from "../PageView";
 
+const IDENTIFIER = 'field';
+
 var columnColor: number;
 
 export function getContent(pageView: PageView){
     let toReturn = '';
     
     toReturn += `
-        <div class="slds-tabs_default__content tab-content" data-id="field">
+        <div class="slds-tabs_default__content tab-content" data-id="${IDENTIFIER}">
             <article class="slds-card">
                 <div class="slds-card__body slds-card__body_inner">
                     <div class="slds-grid slds-gutters">
@@ -16,7 +18,7 @@ export function getContent(pageView: PageView){
                                     Object API Name
                                 </label>
                                 <select 
-                                    id="input-object-field" 
+                                    id="input-object-${IDENTIFIER}" 
                                     class="slds-input" 
                                     value="${pageView.selectedObject}"
                                 />`;
@@ -76,7 +78,7 @@ function createTable(pageView: PageView){
 
     if(pageView.selectedFields.length || pageView.selectedPermissions.length){
         toReturn += `
-        <div class="slds-tabs_default__content tab-content slds-show" data-id="field">
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="${IDENTIFIER}">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
@@ -99,7 +101,7 @@ function createTable(pageView: PageView){
                     <button
                         type="button" 
                         class="icon-remove button-remove-permission"
-                        data-permission="${permission.api}"
+                        data-permission="${permission.id}"
                     >
                         x
                     </button>
@@ -125,10 +127,11 @@ function createTable(pageView: PageView){
                     Read
                     <br/>
                     <input 
-                        data-permission="${permission.api}" 
+                        id="input-checkbox-field-all-read-${permission.id}"
+                        data-permission="${permission.id}" 
                         data-type="read"
                         type="checkbox"
-                        class="input-checkbox-all"
+                        class="input-checkbox-field-all"
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
@@ -136,10 +139,11 @@ function createTable(pageView: PageView){
                     Edit
                     <br/>
                     <input 
-                        data-permission="${permission.api}" 
+                        id="input-checkbox-field-all-edit-${permission.id}"
+                        data-permission="${permission.id}" 
                         data-type="edit"
                         type="checkbox"
-                        class="input-checkbox-all"
+                        class="input-checkbox-field-all"
                         ${permission.edit ? 'checked' : ''}
                     />
                 </th>
@@ -160,7 +164,7 @@ function createTable(pageView: PageView){
                                 <td class="column-input-checkbox no-border-right">
                                     <button 
                                         type="button"
-                                        class="icon-remove button-remove-field"
+                                        class="icon-remove button-remove-${IDENTIFIER}"
                                         data-field="${field}"
                                     >
                                         x
@@ -174,27 +178,30 @@ function createTable(pageView: PageView){
                         resetColumnColor();
 
                         for(let x in pageView.selectedPermissions){
-                            let recordValue = pageView.fieldValues.get(pageView.selectedPermissions[x].api +'.'+ field);
+                            let key1 = pageView.selectedPermissions[x].id;
+                            let key2 = field.toUpperCase();
+
+                            let recordValue = pageView.fieldValues.get(key1).get(key2);
 
                             if(recordValue){
                                 toReturn += `
                                     <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
-                                            data-permission="${pageView.selectedPermissions[x].api}" 
+                                            data-permission="${key1}" 
                                             data-type="read" 
                                             type="checkbox" 
-                                            class="input-checkbox-field"
+                                            class="input-checkbox-${IDENTIFIER}"
                                             ${recordValue.read ? 'checked' : ''}
                                         />
                                     </td>
                                     <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
-                                            data-permission="${pageView.selectedPermissions[x].api}" 
+                                            data-permission="${key1}" 
                                             data-type="edit" 
                                             type="checkbox" 
-                                            class="input-checkbox-field"
+                                            class="input-checkbox-${IDENTIFIER}"
                                             ${recordValue.edit ? 'checked' : ''}
                                         />
                                     </td>
