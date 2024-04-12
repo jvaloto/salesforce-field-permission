@@ -1,7 +1,7 @@
 // @ts-nocheck
 import * as vscode from 'vscode';
 import { getConnection, getOrgs } from './connection';
-import jsforce from 'jsforce';
+import jsforce, { Apex } from 'jsforce';
 import * as dml from './sf/sfDML';
 import { html } from './html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
@@ -11,6 +11,7 @@ import * as sfFieldDAO from './sf/sfFieldDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
+import { ApexClass } from './type/ApexClass';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -871,14 +872,15 @@ export class PageView{
 	private async loadApexClassPermissions(checkPermission: boolean){
 		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
 
-		let listApexClassPermission = new Array();
+		let listApexClassPermission = new Array<ApexClassPermission>;
 		
 		if(checkPermission){
-			listApexClassPermission = await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass, listIdPermissionSetToFilter);
+			listApexClassPermission = 
+				await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass, listIdPermissionSetToFilter);
 		}
 
 		listApexClassPermission.forEach(permission =>{
-			let key1 = permission.parentId;
+			let key1 = permission.permissionId;
 			let key2 = permission.apexClassId;
 
 			if(!this.apexClassValues.has(key1)){
@@ -886,7 +888,10 @@ export class PageView{
 			}
 	
 			if(!this.apexClassValues.get(key1).has(key2)){
-				this.apexClassValues.get(key1).set(key2, {id: permission.id, checked: true});
+				this.apexClassValues.get(key1).set(key2, {
+					id: permission.id, 
+					checked: true
+				});
 			}
 		});
 
@@ -901,7 +906,10 @@ export class PageView{
 				let key2 = apexClassId;
 
 				if(!this.apexClassValues.get(key1).has(key2)){
-					this.apexClassValues.get(key1).set(key2, {id: null, checked: false});
+					this.apexClassValues.get(key1).set(key2, {
+						id: null, 
+						checked: false
+					});
 				}
 			});
 		});
@@ -945,14 +953,14 @@ export class PageView{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Apex Class...',
 		}, async (progress) => {
-			let listRecordsToCreate = new Array();
-			let listRecordsToDelete = new Array();
+			let listRecordsToCreate = new Array<ApexClass>;
+			let listRecordsToDelete = new Array<ApexClass>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.apexClassValues){
 				for(let [keyApexClass, valueApexClass] of this.apexClassValues.get(key)){
-					let record = {};
+					let record: ApexClass = {};
 					record.Id = valueApexClass.id;
 					record.ParentId = key;
 					record.SetupEntityId = keyApexClass;

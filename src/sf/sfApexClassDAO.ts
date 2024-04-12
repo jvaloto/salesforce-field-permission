@@ -29,7 +29,7 @@ export async function getAll(connection: jsforce.Connection){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listIdApexClass: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array();
+    let listToReturn = new Array<ApexClassPermission>;
 
     if(listIdApexClass.length){
         let parentFilter = '';
