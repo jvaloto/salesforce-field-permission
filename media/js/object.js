@@ -39,29 +39,10 @@
     document.querySelectorAll(".button-save-object").forEach(item =>{
         item.addEventListener('click', (event) =>{
             let object = event.target.dataset.object;
-            let mapValues = new Map();
-            let listValues = new Array();
-
-            document.querySelectorAll(`.input-checkbox-object-${object}`).forEach(item =>{
-                let id = item.dataset.id === 'null' ? null : item.dataset.id;
-                let permissionId = item.dataset.permission;
-
-                if(!mapValues.has(permissionId)){
-                    mapValues.set(permissionId, {});
-                    mapValues.get(permissionId).id = id;
-                    mapValues.get(permissionId).permissionId = permissionId;
-                }
-
-                mapValues.get(permissionId)[item.dataset.type] = item.checked;
-            });
-
-            for(let [key, value] of mapValues){
-            listValues.push(value);
-            }
 
             vscode.postMessage({
                 command: 'SAVE-OBJECT',
-                text: { 'object': object, 'values': JSON.stringify(listValues) }
+                text: object
             });
         });
     });
@@ -69,12 +50,12 @@
     document.querySelectorAll(".input-checkbox-object").forEach(item =>{
         item.addEventListener('click', (event) =>{
             let object = event.target.dataset.object;
-            let permission = event.target.dataset.permission;
+            let permissionId = event.target.dataset.permission;
             let type = event.target.dataset.type;
             let isChecked = event.target.checked;
 
             let changeValue = function(type){
-                document.querySelector(`.input-checkbox-object-${object}-${permission}-${type}`).checked = isChecked;
+                document.querySelector(`.input-checkbox-object-${object}-${permissionId}-${type}`).checked = isChecked;
             };
 
             if(isChecked){
@@ -124,6 +105,20 @@
                         break;
                 }
             }
+
+            vscode.postMessage({
+                command: 'CHANGE-OBJECT-VALUE',
+                text: { 
+                    'permissionId': permissionId,
+                    'object': object,
+                    'read': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-read`).checked,
+                    'create': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-create`).checked,
+                    'edit': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-edit`).checked,
+                    'del': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-delete`).checked,
+                    'viewAll': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-viewAll`).checked,
+                    'modifyAll': document.querySelector(`.input-checkbox-object-${object}-${permissionId}-modifyAll`).checked
+                }
+            });
         });
     });
 

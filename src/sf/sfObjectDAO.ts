@@ -79,7 +79,7 @@ export async function getPermissions(connection: jsforce.Connection, listObject:
                 newRecord.edit = record.PermissionsEdit;
                 newRecord.delete = record.PermissionsDelete;
                 newRecord.viewAll = record.PermissionsViewAllRecords;
-                newRecord.modifyAll = record.PermissionsModifyAllRecord;
+                newRecord.modifyAll = record.PermissionsModifyAllRecords;
 
                 listToReturn.push(newRecord);
             });
