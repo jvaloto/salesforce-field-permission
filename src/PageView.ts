@@ -10,6 +10,7 @@ import * as sfPermissionSetDAO from './sf/sfPermissionSetDAO';
 import * as sfFieldDAO from './sf/sfFieldDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
+import { Object } from './type/Object';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -213,8 +214,21 @@ export class PageView{
 						this.saveFields();
 
 						return;
+					case 'CHANGE-OBJECT-VALUE':
+						this.setObjectValue(
+							message.text.permissionId, 
+							message.text.object, 
+							message.text.read, 
+							message.text.create, 
+							message.text.edit, 
+							message.text.del, 
+							message.text.viewAll, 
+							message.text.modifyAll
+						);
+
+						break;
 					case 'SAVE-OBJECT':
-						this.saveObject(message.text.object, JSON.parse(message.text.values));
+						this.saveObject(message.text);
 
 						return;
 					case 'CLEAR':
@@ -349,16 +363,6 @@ export class PageView{
 			await this.loadApexClass();
 
 			this.isConnected = true;
-
-
-
-
-			// TODO: remove after tests
-			this.addField('Account', 'Active__c');
-
-
-
-
 
 			this.setLoading(false);
 		});
@@ -653,7 +657,7 @@ export class PageView{
 
 		if(listPermission && listPermission.length){
 			listPermission.forEach((permission: any) =>{
-				let key1 = permission.parentId;
+				let key1 = permission.permissionId;
 				let key2 = permission.object;
 
 				if(!this.objectValues.has(key1)){
@@ -661,11 +665,11 @@ export class PageView{
 				}
 
 				if(!this.objectValues.get(key1).has(key2)){
-					this.objectValues.get(key1).set(key2, createDefault(permission.parentId));
+					this.objectValues.get(key1).set(key2, createDefault(permission.permissionId));
 				}
 
 				this.objectValues.get(key1).get(key2).id = permission.id;
-				this.objectValues.get(key1).get(key2).permissionId = permission.parentId;
+				this.objectValues.get(key1).get(key2).permissionId = permission.permissionId;
 				this.objectValues.get(key1).get(key2).read = permission.read;
 				this.objectValues.get(key1).get(key2).create = permission.create;
 				this.objectValues.get(key1).get(key2).edit = permission.edit;
@@ -1119,10 +1123,19 @@ export class PageView{
 		this.createMessage(true, MESSAGE_TYPE.SUCCESS, 'Your changes are saved');
 	}
 
+	private setObjectValue(permissionId: string, object: string, read: boolean, create: boolean, edit: boolean, del: boolean, viewAll: boolean, modifyAll: boolean){
+		let record = this.objectValues.get(permissionId).get(object);
+		record.read = read;
+		record.create = create;
+		record.edit = edit;
+		record.delete = del;
+		record.viewAll = viewAll;
+		record.modifyAll = modifyAll;
 
-	// TODO: after save the page is reloaded and older values are displayed (need to maintain records)
-	// TODO: after set checkbox send to backend to store value
-	private saveObject(object: string, values: Array<any>){
+		this.objectValues.get(permissionId).set(object, record);
+	}
+
+	private saveObject(object: string){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: `Saving ${object} Object...`,
@@ -1131,17 +1144,19 @@ export class PageView{
 			let listRecordsToCreate = new Array();
 			let listRecordsToUpdate = new Array();
 
-			values.forEach(value =>{
-				let record = {};
-				record.Id = value.id;
-				record.ParentId = value.permissionId;
+			this.selectedPermissions.forEach(permission =>{
+				let valueObject = this.objectValues.get(permission.id).get(object);
+
+				let record: Object = {};
+				record.Id = valueObject.id;
+				record.ParentId = valueObject.permissionId;
 				record.SObjectType = object;
-				record.PermissionsRead = value.read;
-				record.PermissionsCreate = value.create;
-				record.PermissionsEdit = value.edit;
-				record.PermissionsDelete = value.delete;
-				record.PermissionsViewAllRecords = value.viewAll;
-				record.PermissionsModifyAllRecords = value.modifyAll;
+				record.PermissionsRead = valueObject.read;
+				record.PermissionsCreate = valueObject.create;
+				record.PermissionsEdit = valueObject.edit;
+				record.PermissionsDelete = valueObject.delete;
+				record.PermissionsViewAllRecords = valueObject.viewAll;
+				record.PermissionsModifyAllRecords = valueObject.modifyAll;
 
 				if(record.Id){
 					listRecordsToUpdate.push(record);
@@ -1150,7 +1165,7 @@ export class PageView{
 
 					new Array('read', 'create', 'edit', 'delete', 'viewAll', 'modifyAll')
 					.forEach(field =>{
-						if(value[field]){
+						if(valueObject[field]){
 							allFalse = false;
 						}
 					});
