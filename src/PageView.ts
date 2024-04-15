@@ -1201,7 +1201,7 @@ export class PageView{
 					let recordInfo = listRecordsToCreate[x];
 					
 					if(result.success){
-						this.objectValues.get(object).get(record.ParentId).id = result.id;
+						this.objectValues.get(recordInfo.ParentId).get(object).id = result.id;
 					}else{
 						listErrors.push(this.formatErrorMessage(result.errors, object, this.permissionsMap.get(recordInfo.ParentId).Name));
 					}
