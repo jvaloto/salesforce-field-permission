@@ -54,7 +54,7 @@ export function getContent(pageView: PageView){
                 class="slds-button slds-button_brand"
                 title="Use selected org to retrieve and set permissions" 
             >
-                Set Org
+                Use this Org
             </button>
         </footer>
     </article>
