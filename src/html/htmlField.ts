@@ -181,9 +181,9 @@ function createTable(pageView: PageView){
                             let key1 = pageView.selectedPermissions[x].id;
                             let key2 = field.toUpperCase();
 
-                            let recordValue = pageView.fieldValues.get(key1).get(key2);
-
-                            if(recordValue){
+                            if(pageView.fieldValues.has(key1) && pageView.fieldValues.get(key1).has(key2)){
+                                let recordValue = pageView.fieldValues.get(key1).get(key2);
+                            
                                 toReturn += `
                                     <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                         <input 

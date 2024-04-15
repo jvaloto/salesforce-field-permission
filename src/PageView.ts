@@ -368,7 +368,7 @@ export class PageView{
 				this.isConnected = true;
 			}else{
 				this.setDefaultOrg(false);
-				
+
 				this.message(MESSAGE_TYPE.ERROR, `Unable to connect to org: ${this.org}. Please review your Salesforce CLI orgs`);
 
 				this.isConnected = false;
@@ -492,7 +492,7 @@ export class PageView{
 
 			this.showModal = false;
 
-			this.addMetadata(listFields, []);
+			await this.addMetadata(listFields, []);
 
 			this._update();
 		});
