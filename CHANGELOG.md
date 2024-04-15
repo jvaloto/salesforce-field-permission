@@ -1,8 +1,13 @@
 # Change Log
 
-<!--
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
--->
+## 0.4.0
+
+- Set permissions for apex class
+- Select objects using a picklist
+- Visual change grouping metadata using tab style
+- "Where's the permission?" button moved to permission set card
+- Internal structure changes
+- Bug fixes
 
 ## 0.3.0
 
