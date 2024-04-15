@@ -1,72 +1,76 @@
 import { PageView } from "../PageView";
 
+const IDENTIFIER = 'field';
+
 var columnColor: number;
 
 export function getContent(pageView: PageView){
-    let toReturn = `
-            <div class="slds-tabs_default__content tab-content" data-id="field">
-                <article class="slds-card">
-                    <div class="slds-card__body slds-card__body_inner">
-                        <div class="slds-grid slds-gutters">
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Object API Name
-                                    </label>
-                                    <select 
-                                        id="input-object-field" 
-                                        class="slds-input" 
-                                        value="${pageView.selectedObject}"
-                                    />`;
+    let toReturn = '';
     
-                                    pageView.listObject.forEach((object: string) =>{
-                                        toReturn += `<option value="${object}">${object}</option>`;
-                                    });
-    
-                                    toReturn += `
-                                    </select>
-                                </div>
+    toReturn += `
+        <div class="slds-tabs_default__content tab-content" data-id="${IDENTIFIER}">
+            <article class="slds-card">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <select 
+                                    id="input-object-${IDENTIFIER}" 
+                                    class="slds-input" 
+                                    value="${pageView.selectedObject}"
+                                />`;
+
+                                pageView.listObjectAll.forEach((object: string) =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
-    
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Field API Name
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="input-field" 
-                                        class="slds-input" 
-                                    />
-                                </div>
+                        </div>
+
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Field API Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="input-field" 
+                                    class="slds-input" 
+                                />
                             </div>
                         </div>
                     </div>
-                    <footer class="slds-card__footer">
-                        <button 
-                            id="button-add-field-object" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Select mass fields by object to set permissions"
-                        >
-                            Add Fields by Object
-                        </button>
-                        
-                        <button 
-                            id="button-add-field" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Add selected field to set permissions"
-                        >
-                            Add Field
-                        </button>
-                    </footer>
-                </article>
-                ${createTable(pageView)}
-            </div>
-        `;
+                </div>
+                <footer class="slds-card__footer">
+                    <button 
+                        id="button-add-field-object" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Select mass fields by object to set permissions"
+                    >
+                        Add Fields by Object
+                    </button>
+                    
+                    <button 
+                        id="button-add-field" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Add selected field to set permissions"
+                    >
+                        Add Field
+                    </button>
+                </footer>
+            </article>
+            ${createTable(pageView)}
+        </div>
+    `;
 
-        return toReturn;
+    return toReturn;
 }
 
 function createTable(pageView: PageView){
@@ -74,7 +78,7 @@ function createTable(pageView: PageView){
 
     if(pageView.selectedFields.length || pageView.selectedPermissions.length){
         toReturn += `
-        <div class="slds-tabs_default__content tab-content slds-show" data-id="field">
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="${IDENTIFIER}">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
                 <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered">
@@ -97,7 +101,7 @@ function createTable(pageView: PageView){
                     <button
                         type="button" 
                         class="icon-remove button-remove-permission"
-                        data-permission="${permission.api}"
+                        data-permission="${permission.id}"
                     >
                         x
                     </button>
@@ -123,10 +127,11 @@ function createTable(pageView: PageView){
                     Read
                     <br/>
                     <input 
-                        data-permission="${permission.api}" 
+                        id="input-checkbox-field-all-read-${permission.id}"
+                        data-permission="${permission.id}" 
                         data-type="read"
                         type="checkbox"
-                        class="input-checkbox-all"
+                        class="input-checkbox-field-all"
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
@@ -134,10 +139,11 @@ function createTable(pageView: PageView){
                     Edit
                     <br/>
                     <input 
-                        data-permission="${permission.api}" 
+                        id="input-checkbox-field-all-edit-${permission.id}"
+                        data-permission="${permission.id}" 
                         data-type="edit"
                         type="checkbox"
-                        class="input-checkbox-all"
+                        class="input-checkbox-field-all"
                         ${permission.edit ? 'checked' : ''}
                     />
                 </th>
@@ -158,7 +164,7 @@ function createTable(pageView: PageView){
                                 <td class="column-input-checkbox no-border-right">
                                     <button 
                                         type="button"
-                                        class="icon-remove button-remove-field"
+                                        class="icon-remove button-remove-${IDENTIFIER}"
                                         data-field="${field}"
                                     >
                                         x
@@ -172,27 +178,30 @@ function createTable(pageView: PageView){
                         resetColumnColor();
 
                         for(let x in pageView.selectedPermissions){
-                            let recordValue = pageView.fieldValues.get(pageView.selectedPermissions[x].api +'.'+ field);
+                            let key1 = pageView.selectedPermissions[x].id;
+                            let key2 = field.toUpperCase();
 
-                            if(recordValue){
+                            if(pageView.fieldValues.has(key1) && pageView.fieldValues.get(key1).has(key2)){
+                                let recordValue = pageView.fieldValues.get(key1).get(key2);
+                            
                                 toReturn += `
                                     <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
-                                            data-permission="${pageView.selectedPermissions[x].api}" 
+                                            data-permission="${key1}" 
                                             data-type="read" 
                                             type="checkbox" 
-                                            class="input-checkbox-field"
+                                            class="input-checkbox-${IDENTIFIER}"
                                             ${recordValue.read ? 'checked' : ''}
                                         />
                                     </td>
                                     <td class="center column-input-checkbox view-edit-${getColumnColor()}">
                                         <input 
                                             data-field="${field}" 
-                                            data-permission="${pageView.selectedPermissions[x].api}" 
+                                            data-permission="${key1}" 
                                             data-type="edit" 
                                             type="checkbox" 
-                                            class="input-checkbox-field"
+                                            class="input-checkbox-${IDENTIFIER}"
                                             ${recordValue.edit ? 'checked' : ''}
                                         />
                                     </td>

@@ -1,6 +1,6 @@
 import { PageView } from "../PageView";
 
-export function getObjectFieldModalContent(pageView: PageView){
+export function getContent(pageView: PageView){
     let toReturn = ``;
 
     if(pageView.showModal){
@@ -19,7 +19,7 @@ export function getObjectFieldModalContent(pageView: PageView){
                                 class="slds-input" 
                             >`; 
 
-                            pageView.listObject.forEach(object =>{
+                            pageView.listObjectAll.forEach(object =>{
                                 toReturn += `<option value="${object}" ${object === pageView.objectToDescribe ? 'selected' : ''}>${object}</option>`;
                             });
 

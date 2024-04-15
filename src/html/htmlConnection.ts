@@ -1,7 +1,9 @@
 import { PageView } from "../PageView";
 
-export function getConnectionContent(pageView: PageView){
-    let toReturn = `
+export function getContent(pageView: PageView){
+    let toReturn = '';
+
+    toReturn += `
     <article class="slds-card">
         <div class="slds-card__body slds-card__body_inner">
             <div class="form-element">
@@ -52,7 +54,7 @@ export function getConnectionContent(pageView: PageView){
                 class="slds-button slds-button_brand"
                 title="Use selected org to retrieve and set permissions" 
             >
-                Set Org
+                Use this Org
             </button>
         </footer>
     </article>

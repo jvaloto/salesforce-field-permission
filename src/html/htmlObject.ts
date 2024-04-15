@@ -1,55 +1,59 @@
 import { PageView } from "../PageView";
 
+const IDENTIFIER = 'object';
+
 var columnColor: number;
 
 export function getContent(pageView: PageView){
-    let toReturn = `
-            <div class="slds-tabs_default__content tab-content slds-hide" data-id="object">
-                <article class="slds-card">
-                    <div class="slds-card__body slds-card__body_inner">
-                        <div class="slds-grid slds-gutters">
-                            <div class="slds-col">
-                                <div class="slds-form-element">
-                                    <label class="slds-form-element__label">
-                                        Object API Name
-                                    </label>
-                                    <select 
-                                        id="input-object" 
-                                        class="slds-input" 
-                                        value="${pageView.selectedObject}"
-                                    />`;
+    let toReturn = '';
     
-                                    pageView.listObject.forEach(object =>{
-                                        toReturn += `<option value="${object}">${object}</option>`;
-                                    });
-    
-                                    toReturn += `
-                                    </select>
-                                </div>
+    toReturn += `
+        <div class="slds-tabs_default__content tab-content slds-hide" data-id="${IDENTIFIER}">
+            <article class="slds-card">
+                <div class="slds-card__body slds-card__body_inner">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    Object API Name
+                                </label>
+                                <select 
+                                    id="input-${IDENTIFIER}" 
+                                    class="slds-input" 
+                                    value="${pageView.selectedObject}"
+                                />`;
+
+                                pageView.listObjectToSelect.forEach(object =>{
+                                    toReturn += `<option value="${object}">${object}</option>`;
+                                });
+
+                                toReturn += `
+                                </select>
                             </div>
                         </div>
                     </div>
-                    <footer class="slds-card__footer">
-                        <button 
-                            id="button-add-object" 
-                            type="button" 
-                            class="slds-button slds-button_brand"
-                            title="Add selected object to set permissions"
-                        >
-                            Add Object
-                        </button>
-                    </footer>
-                </article>`;
-
-            toReturn += `
-                ${createTabs(pageView)}
-
-                ${createTabContent(pageView)}
-
                 </div>
-            `;
+                <footer class="slds-card__footer">
+                    <button 
+                        id="button-add-${IDENTIFIER}" 
+                        type="button" 
+                        class="slds-button slds-button_brand"
+                        title="Add selected object to set permissions"
+                    >
+                        Add Object
+                    </button>
+                </footer>
+            </article>`;
 
-        return toReturn;
+        toReturn += `
+            ${createTabs(pageView)}
+
+            ${createTabContent(pageView)}
+
+            </div>
+        `;
+
+    return toReturn;
 }
 
 function createTabs(pageView: PageView){
@@ -60,8 +64,8 @@ function createTabs(pageView: PageView){
 
     pageView.listSelectedObjects.forEach((object: string) =>{
         toReturn += `
-            <li class="slds-tabs_default__item li-sub-tab" data-id="${object}" data-parent-id="object">
-                <a class="slds-tabs_default__link input-sub-tab" data-id="${object}" data-parent-id="object">
+            <li class="slds-tabs_default__item li-sub-tab" data-id="${object}" data-parent-id="${IDENTIFIER}">
+                <a class="slds-tabs_default__link input-sub-tab" data-id="${object}" data-parent-id="${IDENTIFIER}">
                     ${object}
                 </a>
             </li>
@@ -103,7 +107,7 @@ function createTabContent(pageView: PageView){
                                                 <button
                                                     type="button" 
                                                     class="icon-remove button-remove-permission"
-                                                    data-permission="${permission.api}"
+                                                    data-permission="${permission.id}"
                                                 >
                                                     x
                                                 </button>
@@ -144,7 +148,7 @@ function createTabContent(pageView: PageView){
                                                         data-type="${key}"
                                                         data-object="${object}"
                                                         type="checkbox"
-                                                        class="input-checkbox-object input-checkbox-object-${object} input-checkbox-object-${object}-${permission.id}-${key}"
+                                                        class="input-checkbox-${IDENTIFIER} input-checkbox-${IDENTIFIER}-${object} input-checkbox-${IDENTIFIER}-${object}-${permission.id}-${key}"
                                                         ${pageView.objectValues.get(permission.id).get(object)[key] ? 'checked' : ''}
                                                     />
                                                 </td>`;
@@ -162,14 +166,14 @@ function createTabContent(pageView: PageView){
                     <button 
                         data-object="${object}"
                         type="button" 
-                        class="slds-button slds-button_neutral button-remove-object"
+                        class="slds-button slds-button_neutral button-remove-${IDENTIFIER}"
                     >
                         Remove
                     </button>
                     <button 
                         data-object="${object}"
                         type="button" 
-                        class="slds-button slds-button_brand button-save-object"
+                        class="slds-button slds-button_brand button-save-${IDENTIFIER}"
                         title="Save permissions for this object"
                     >
                         Save

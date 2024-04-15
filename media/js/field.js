@@ -1,6 +1,8 @@
 // @ts-nocheck
 (function () {
 
+    const IDENTIFIER = 'field';
+
     const addField = function(){
         let object = document.querySelector("#input-object-field").value;
 
@@ -38,7 +40,9 @@
 
             vscode.postMessage({
                 command: 'REMOVE-FIELD',
-                text: field
+                text: {
+                    'field': field
+                }
             });
 
             document.querySelector(`tr[data-field="tr-${field}"]`).classList.add("hidden");
@@ -57,37 +61,62 @@
         });
     });
 
-    document.querySelectorAll(".input-checkbox-all").forEach(item =>{
+    document.querySelectorAll(`.input-checkbox-${IDENTIFIER}-all`).forEach(item =>{
         item.addEventListener('change', (event) =>{
             let checked = event.target.checked;
             let type = event.target.dataset.type;
-            let permission = event.target.dataset.permission;
+            let permissionId = event.target.dataset.permission;
+            let mapValue = getValues(type, checked);
+            let read = mapValue.get('read');
+            let edit = mapValue.get('edit');
 
+            if(type === 'read' || (type === 'edit' && checked)){
+                document.querySelector(`#input-checkbox-field-all-read-${permissionId}`).checked = read;
+                document.querySelector(`#input-checkbox-field-all-edit-${permissionId}`).checked = edit;
+
+                document.querySelectorAll(`.input-checkbox-${IDENTIFIER}[data-permission="${permissionId}"][data-type="read"]`).forEach(item =>{
+                    item.checked = read;
+                });
+            }
+
+            document.querySelectorAll(`.input-checkbox-${IDENTIFIER}[data-permission="${permissionId}"][data-type="edit"]`).forEach(item =>{
+                item.checked = edit;
+            });
+                
             vscode.postMessage({
-                command: 'CHANGE-VALUE-ALL',
+                command: 'CHANGE-FIELD-VALUE-ALL',
                 text: {
-                    'checked': checked, 
-                    'type': type, 
-                    'permission': permission
+                    'permissionId': permissionId,
+                    'read': read,
+                    'edit': edit
                 }
             });
         });
     });
 
-    document.querySelectorAll(".input-checkbox-field").forEach(item =>{
+    document.querySelectorAll(`.input-checkbox-${IDENTIFIER}`).forEach(item =>{
         item.addEventListener('change', (event) =>{
             let checked = event.target.checked;
             let type = event.target.dataset.type;
-            let permission = event.target.dataset.permission;
+            let permissionId = event.target.dataset.permission;
             let field = event.target.dataset.field;
+            let mapValue = getValues(type, checked);
+            let read = mapValue.get('read');
+            let edit = mapValue.get('edit');
+
+            if(type === 'read' || (type === 'edit' && checked)){
+                document.querySelector(`.input-checkbox-${IDENTIFIER}[data-permission="${permissionId}"][data-field="${field}"][data-type="read"]`).checked = read;
+            }
+
+            document.querySelector(`.input-checkbox-${IDENTIFIER}[data-permission="${permissionId}"][data-field="${field}"][data-type="edit"]`).checked = edit;
 
             vscode.postMessage({
-                command: 'CHANGE-VALUE',
+                command: 'CHANGE-FIELD-VALUE',
                 text: {
-                    'checked': checked, 
-                    'type': type, 
-                    'permission': permission, 
-                    'field': field
+                    'permissionId': permissionId, 
+                    'field': field,
+                    'read': read,
+                    'edit': edit
                 }
             });
         });

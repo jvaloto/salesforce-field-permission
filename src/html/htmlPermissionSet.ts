@@ -1,6 +1,7 @@
 import { PageView } from "../PageView";
+import { PermissionSet } from "../type/PermissionSet";
 
-export function getPermissionSetContent(pageView: PageView){
+export function getContent(pageView: PageView){
     let toReturn = ``; 
 
     if(pageView.isConnected){
@@ -19,7 +20,7 @@ export function getPermissionSetContent(pageView: PageView){
                             >
         `;
 
-        pageView.permissionsToSelect.forEach(permission =>{
+        pageView.permissionsToSelect.forEach((permission: PermissionSet) =>{
             toReturn += `<option value="${permission.api}">${permission.label} (${permission.api})</option>`;
         });
 

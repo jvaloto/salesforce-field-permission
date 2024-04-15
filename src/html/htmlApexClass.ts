@@ -1,51 +1,54 @@
 import { PageView } from "../PageView";
 
-var columnColor: number;
 const IDENTIFIER = 'apex-class';
 
+var columnColor: number;
+
 export function getContent(pageView: PageView){
-    let toReturn = `
-        <div class="slds-tabs_default__content tab-content slds-hide" data-id="${IDENTIFIER}">
-            <article class="slds-card">
-                <div class="slds-card__body slds-card__body_inner">
-                    <div class="slds-grid slds-gutters">
-                        <div class="slds-col">
-                            <div class="slds-form-element">
-                                <label class="slds-form-element__label">
-                                    Apex Class
-                                </label>
-                                <select 
-                                    id="input-${IDENTIFIER}" 
-                                    class="slds-input" 
-                                >`;
+    let toReturn = '';
 
-                                pageView.listApexClassToSelect.forEach(apexClass =>{
-                                    toReturn += `<option value="${apexClass.id}">${apexClass.label}</option>`;
-                                });
+    toReturn += `
+    <div class="slds-tabs_default__content tab-content slds-hide" data-id="${IDENTIFIER}">
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label">
+                                Apex Class
+                            </label>
+                            <select 
+                                id="input-${IDENTIFIER}" 
+                                class="slds-input" 
+                            >`;
 
-                                toReturn += `
-                                </select>
-                            </div>
+                            pageView.listApexClassToSelect.forEach(apexClass =>{
+                                toReturn += `<option value="${apexClass.id}">${apexClass.label}</option>`;
+                            });
+
+                            toReturn += `
+                            </select>
                         </div>
                     </div>
                 </div>
-                <footer class="slds-card__footer">
-                    <button 
-                        id="button-add-${IDENTIFIER}" 
-                        type="button" 
-                        class="slds-button slds-button_brand"
-                        title="Add selected apex class to set permissions"
-                    >
-                        Add Apex Class
-                    </button>
-                </footer>
-            </article>`;
-
-        toReturn += `
-            ${createTable(pageView)}
-
             </div>
-        `;
+            <footer class="slds-card__footer">
+                <button 
+                    id="button-add-${IDENTIFIER}" 
+                    type="button" 
+                    class="slds-button slds-button_brand"
+                    title="Add selected apex class to set permissions"
+                >
+                    Add Apex Class
+                </button>
+            </footer>
+        </article>`;
+
+    toReturn += `
+        ${createTable(pageView)}
+
+        </div>
+    `;
 
     return toReturn;
 }
@@ -78,7 +81,7 @@ function createTable(pageView: PageView){
                     <button
                         type="button" 
                         class="icon-remove button-remove-permission"
-                        data-permission="${permission.api}"
+                        data-permission="${permission.id}"
                     >
                         x
                     </button>

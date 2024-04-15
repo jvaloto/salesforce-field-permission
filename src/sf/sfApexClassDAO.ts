@@ -1,4 +1,5 @@
 import jsforce from 'jsforce';
+import { ApexClassPermission } from '../type/ApexClassPermission';
 
 export async function getAll(connection: jsforce.Connection){
     let listToReturn = new Array();
@@ -28,7 +29,7 @@ export async function getAll(connection: jsforce.Connection){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listIdApexClass: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array();
+    let listToReturn = new Array<ApexClassPermission>;
 
     if(listIdApexClass.length){
         let parentFilter = '';
@@ -52,11 +53,13 @@ export async function getPermissions(connection: jsforce.Connection, listIdApexC
         await connection.query(soql)
         .then(result =>{
             result.records.forEach((record: any) =>{
-                listToReturn.push({
-                    id: record.Id,
-                    parentId: record.ParentId,
-                    apexClassId: record.SetupEntityId
-                });
+                // @ts-ignore
+                let newRecord: ApexClassPermission = {};
+                newRecord.id = record.Id;
+                newRecord.permissionId = record.ParentId;
+                newRecord.apexClassId = record.SetupEntityId;
+
+                listToReturn.push(newRecord);
             });
         });
     }
