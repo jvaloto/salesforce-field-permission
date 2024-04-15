@@ -348,24 +348,32 @@ export class PageView{
 
 			this.org = org;
 
-			this.setDefaultOrg(this.checkedDefaultOrg);
-
 			this.connection = await getConnection(org);
 
-			progress.report({ message: "Loading Permission Sets..." });
-			
-			await this.loadPermissionSet();
+			if(this.connection.accessToken){
+				this.setDefaultOrg(this.checkedDefaultOrg);
 
-			progress.report({ message: "Loading Objects..." });
-			
-			await this.loadObject();
+				progress.report({ message: "Loading Permission Sets..." });
+				
+				await this.loadPermissionSet();
+				
+				progress.report({ message: "Loading Objects..." });
+				
+				await this.loadObject();
+				
+				progress.report({ message: "Loading Apex Class..." });
+				
+				await this.loadApexClass();
+				
+				this.isConnected = true;
+			}else{
+				this.setDefaultOrg(false);
+				
+				this.message(MESSAGE_TYPE.ERROR, `Unable to connect to org: ${this.org}. Please review your Salesforce CLI orgs`);
 
-			progress.report({ message: "Loading Apex Class..." });
-			
-			await this.loadApexClass();
-
-			this.isConnected = true;
-
+				this.isConnected = false;
+			}
+				
 			this.setLoading(false);
 		});
 	}
