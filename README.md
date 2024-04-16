@@ -6,7 +6,7 @@ Mass update permissions for different metadata on custom permission sets.
 
 If you spent a lot of time setting permissions on permission sets, this extension is for you!
 
-This extension uses [Salesforce CLI](https://github.com/forcedotcom/salesforcedx-vscode) and [JSforce](https://github.com/jsforce/jsforce) to mass update different fields, objects and apex class permissions on permission sets directly in your VS Code using authenticated orgs from Salesforce CLI.
+This extension uses [Salesforce CLI](https://github.com/forcedotcom/salesforcedx-vscode) and [JSforce](https://github.com/jsforce/jsforce) (API v48.0) to mass update different fields, objects and apex class permissions on permission sets directly in your VS Code using authenticated orgs from Salesforce CLI.
 
 You can set org and permission sets as default and when you open the page these settings are pre-filled and you can use less clicks (and time :wink:).
 

@@ -24,7 +24,8 @@ export async function getConnection(alias: string): Promise<jsforce.Connection>{
 
     return new jsforce.Connection({
         instanceUrl: values.instanceUrl,
-        accessToken: values.accessToken
+        accessToken: values.accessToken,
+        version:'48.0'
     });
 }
 
