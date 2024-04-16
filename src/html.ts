@@ -6,6 +6,7 @@ import * as htmlConnection from './html/htmlConnection';
 import * as htmlPermissionSet from './html/htmlPermissionSet';
 import * as htmlObjectFieldModal from './html/htmlObjectFieldModal';
 import * as htmlApexClass from './html/htmlApexClass';
+import * as htmlCustomSetting from './html/htmlCustomSetting';
 
 export class html{
     pageView: PageView;
@@ -123,6 +124,7 @@ export class html{
         listTabs.push({id: 'field', label: "Fields"});
         listTabs.push({id: 'object', label: "Objects"});
         listTabs.push({id: 'apex-class', label: "Apex Class"});
+        listTabs.push({id: 'custom-setting', label: "Custom Settings"});
 
         let toReturn = `
             <div class="slds-tabs_default">
@@ -154,6 +156,8 @@ export class html{
             ${htmlObject.getContent(this.pageView)}
 
             ${htmlApexClass.getContent(this.pageView)}
+
+            ${htmlCustomSetting.getContent(this.pageView)}
         `;
 
         return toReturn;

@@ -8,11 +8,12 @@ import * as sfApexClassDAO from './sf/sfApexClassDAO';
 import * as sfObjectDAO from './sf/sfObjectDAO';
 import * as sfPermissionSetDAO from './sf/sfPermissionSetDAO';
 import * as sfFieldDAO from './sf/sfFieldDAO';
+import * as sfCustomSettingDAO from './sf/sfCustomSettingDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
 import { ApexClass } from './type/ApexClass';
-import { FieldPermissions } from './type/FieldPermissions';
+import { CustomSetting } from './type/CustomSetting';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -21,6 +22,7 @@ const PROJECT_NAME = 'Salesforce Field Permission';
 const FOCUS_FIELD = 'field';
 const FOCUS_OBJECT = 'object';
 const FOCUS_APEX_CLASS = 'apex-class';
+const FOCUS_CUSTOM_SETTING = 'custom-setting';
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -35,6 +37,7 @@ export class PageView{
 	private permissionsMap: Map<any, any>;
 	private listPermissionSetBase: Array<PermissionSet>;
 	private listApexClassBase: Array<string>;
+	private listCustomSettingBase: Array<string>;
 	private tabFocus: string;
 	private subTabFocus: string;
 	private isInputFieldFocus: boolean;
@@ -42,18 +45,22 @@ export class PageView{
 	public apexClassValues: Map<any, any>;
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
+	public customSettingValues: Map<any, any>;
 	public fieldValues: Map<any, any>;
 	public isConnected: boolean;
 	public isLoading: boolean;
 	public listApexClassToSelect: Array<any>;
+	public listCustomSettingToSelect: Array<any>;
 	public listFieldObject: Array<any>;
 	public listObjectAll: Array<any>;
 	public listObjectToSelect: Array<any>;
 	public listOrgs: Array<string>;
 	public listSelectedApexClass: Array<string>;
+	public listSelectedCustomSetting: Array<string>;
 	public listSelectedObjects: Array<string>;
 	public loadingText: string;
 	public mapApexClass: Map<string, any>;
+	public mapCustomSetting: Map<string, any>;
 	public objectToDescribe: string;
 	public objectValues: Map<any, any>;
 	public org: string;
@@ -95,22 +102,26 @@ export class PageView{
 
 	private newInstance(){
 		this.apexClassValues = new Map();
+		this.customSettingValues = new Map();
 		this.fieldValues = new Map();
 		this.isConnected = false;
 		this.isLoading = true;
 		this.listApexClass = new Array();
-		this.listApexClassToSelect = new Map();
+		this.listApexClassToSelect = new Array();
+		this.listCustomSettingToSelect = new Array();
 		this.listFieldObject = new Array();
 		this.listObjectAll = new Array();
 		this.listObjectToSelect = new Array();
+		this.listPermissionSetBase = new Array<PermissionSet>;
 		this.listSelectedApexClass = new Array();
+		this.listSelectedCustomSetting = new Array();
 		this.listSelectedObjects = new Array();
 		this.mapApexClass = new Map();
+		this.mapCustomSetting = new Map();
 		this.objectValues = new Map();
 		this.pageMessageIsActive = false;
 		this.pageMessageText = new Array();
 		this.pageMessageType = '';
-		this.listPermissionSetBase = new Array<PermissionSet>;
 		this.permissionsMap = new Map();
 		this.permissionsToSelect = new Array();
 		this.selectedFields = new Array();
@@ -285,6 +296,30 @@ export class PageView{
 						this.saveApexClass();
 
 						break;
+					case 'ADD-CUSTOM-SETTING':
+						this.addCustomSetting(message.text);
+
+						break;
+					case 'CLEAR-CUSTOM-SETTING':
+						this.clearCustomSetting();
+
+						break;
+					case 'CHANGE-VALUE-ALL-CUSTOM-SETTING':
+						this.checkAllPermissionCustomSetting(message.text.checked, message.text.permissionId);
+
+						break;
+					case 'CHANGE-VALUE-CUSTOM-SETTING':
+						this.setCustomSettingValue(message.text.checked, message.text.permissionId, message.text.customSettingId);
+
+						break;
+					case 'REMOVE-CUSTOM-SETTING':
+						this.removeCustomSetting(message.text);
+
+						break;
+					case 'SAVE-CUSTOM-SETTING':
+						this.saveCustomSetting();
+
+						break;
 				}
 			},
 			null,
@@ -364,6 +399,10 @@ export class PageView{
 				progress.report({ message: "Loading Apex Class..." });
 				
 				await this.loadApexClass();
+
+				progress.report({ message: "Loading Custom Settings..." });
+				
+				await this.loadCustomSetting();
 				
 				this.isConnected = true;
 			}else{
@@ -419,6 +458,17 @@ export class PageView{
 		});
 	}
 
+	private async loadCustomSetting(){
+		this.listCustomSettingBase = 
+			await sfCustomSettingDAO.getAll(this.connection);
+
+		this.listCustomSettingToSelect = [...this.listCustomSettingBase];
+
+		this.listCustomSettingToSelect.forEach((customSetting: any) =>{
+			this.mapCustomSetting.set(customSetting.id, customSetting);
+		});
+	}
+
 	private async addField(object: string, field: string){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
@@ -448,6 +498,19 @@ export class PageView{
 				}
 			}
 		});
+	}
+
+	private clearField(){
+		this.selectedFields = new Array();
+
+		this.fieldValues = new Map();
+
+		this.selectedPermissions.forEach(permission =>{
+			permission.read = false;
+			permission.edit = false;
+		});
+
+		this._update();
 	}
 
 	private showFielsObject(show: boolean){
@@ -559,6 +622,8 @@ export class PageView{
 				this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
 				await this.loadApexClassPermissions(true);
+
+				await this.loadCustomSettingPermissions(true);
 
 				if(isAddMetadata){
 					await this.addMetadata(this.selectedFields, [permissionRecord.id]);
@@ -701,6 +766,7 @@ export class PageView{
 			let listResultFieldPermission;
 			let listResultObjectPermission;
 			let listResultApexClassPermission;
+			let listResultCustomSettingPermission;
 			this.selectedPermissions = new Array();
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.listPermissionSetBase];
@@ -741,6 +807,14 @@ export class PageView{
 				filterList(listResultApexClassPermission, listPermissionsToFilter)
 			);
 
+			// custom setting
+			listResultCustomSettingPermission = 
+				await sfCustomSettingDAO.getPermissions(this.connection, this.listSelectedCustomSetting);
+
+			listPermissionsToFilter.push(
+				filterList(listResultCustomSettingPermission, listPermissionsToFilter)
+			);
+
 			// default process
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
@@ -753,9 +827,12 @@ export class PageView{
 				this.permissionsToSelect.filter((e) => !listPermissionsToFilter.includes(e.id));
 
 			this.createFieldPermissions(listResultFieldPermission, this.selectedFields);
+
 			this.creatObjectPermissions(listResultObjectPermission, this.listSelectedObjects);
 
 			await this.loadApexClassPermissions(true);
+
+			await this.loadCustomSettingPermissions(true);
 
 			if(this.selectedFields.length){
 				this.setTabFocus(FOCUS_FIELD);
@@ -763,6 +840,8 @@ export class PageView{
 				this.setTabFocus(FOCUS_OBJECT);
 			}else if(this.listSelectedApexClass.length){
 				this.setTabFocus(FOCUS_APEX_CLASS);
+			}else if(this.listSelectedCustomSetting.length){
+				this.setTabFocus(FOCUS_CUSTOM_SETTING);
 			}
 
 			this._update();
@@ -928,17 +1007,10 @@ export class PageView{
 		this.apexClassValues.get(parentId).get(apexClassId).checked = checked;
 	}
 
-	private clearField(){
-		this.selectedFields = new Array();
-
-		this.fieldValues = new Map();
-
-		this.selectedPermissions.forEach(permission =>{
-			permission.read = false;
-			permission.edit = false;
+	private checkAllPermissionApexClass(checked: boolean, permissionId: string){
+		this.listSelectedApexClass.forEach(apexClass =>{
+			this.apexClassValues.get(permissionId).get(apexClass).checked = checked;
 		});
-
-		this._update();
 	}
 
 	private clearApexClass(){
@@ -949,12 +1021,6 @@ export class PageView{
 		this.apexClassValues = new Map();
 
 		this._update();
-	}
-
-	private checkAllPermissionApexClass(checked: boolean, permissionId: string){
-		this.listSelectedApexClass.forEach(apexClass =>{
-			this.apexClassValues.get(permissionId).get(apexClass).checked = checked;
-		});
 	}
 
 	private saveApexClass(){
@@ -1015,6 +1081,174 @@ export class PageView{
 			}
 
 			this.endDML('Apex Class', listErrors);
+		});
+	}
+
+	private addCustomSetting(customSettingId: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Custom Setting...',
+		}, async (progress) => {
+			this.createMessage(false);
+			
+			if(customSettingId){
+				if(!this.listSelectedCustomSetting.includes(customSettingId)){
+					this.listSelectedCustomSetting.push(customSettingId);
+					
+					this.listCustomSettingToSelect = 
+						this.listCustomSettingToSelect.filter(e => e.id !== customSettingId);
+					
+					await this.loadCustomSettingPermissions(this.selectedPermissions.length > 0);
+					
+					this._update();
+				}
+			}
+		});
+	}
+
+	private removeCustomSetting(customSettingId: string){
+		if(this.selectedPermissions.length){
+			this.selectedPermissions.forEach(permission =>{
+				this.customSettingValues.get(permission.id).delete(customSettingId);
+			});
+		}
+
+		this.listCustomSettingToSelect.push(this.mapCustomSetting.get(customSettingId));
+
+		this.listCustomSettingToSelect.sort((a,b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
+		this.listSelectedCustomSetting = this.listSelectedCustomSetting.filter(e => e !== customSettingId);
+
+		this._panel.webview.postMessage({
+			command: 'JS-UPDATE-LIST-CUSTOM-SETTING'
+			, text: this.listCustomSettingToSelect
+		});
+	}
+
+	private async loadCustomSettingPermissions(checkPermission: boolean){
+		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
+
+		let listCustomSettingPermission = new Array<CustomSettingPermission>;
+		
+		if(checkPermission){
+			listCustomSettingPermission = 
+				await sfCustomSettingDAO.getPermissions(this.connection, this.listSelectedCustomSetting, listIdPermissionSetToFilter);
+		}
+
+		listCustomSettingPermission.forEach(permission =>{
+			let key1 = permission.permissionId;
+			let key2 = permission.customSettingId;
+
+			if(!this.customSettingValues.has(key1)){
+				this.customSettingValues.set(key1, new Map());
+			}
+	
+			if(!this.customSettingValues.get(key1).has(key2)){
+				this.customSettingValues.get(key1).set(key2, {
+					id: permission.id, 
+					checked: true
+				});
+			}
+		});
+
+		listIdPermissionSetToFilter.forEach(permissionId =>{
+			let key1 = permissionId;
+
+			if(!this.customSettingValues.has(key1)){
+				this.customSettingValues.set(key1, new Map());
+			}
+				
+			this.listSelectedCustomSetting.forEach(customSettingId =>{
+				let key2 = customSettingId;
+
+				if(!this.customSettingValues.get(key1).has(key2)){
+					this.customSettingValues.get(key1).set(key2, {
+						id: null, 
+						checked: false
+					});
+				}
+			});
+		});
+	}
+
+	private setCustomSettingValue(checked: boolean, permissionId: string, customSettingId: string){
+		this.customSettingValues.get(permissionId).get(customSettingId).checked = checked;
+	}
+
+	private checkAllPermissionCustomSetting(checked: boolean, permissionId: string){
+		this.listSelectedCustomSetting.forEach(customSettingId =>{
+			this.customSettingValues.get(permissionId).get(customSettingId).checked = checked;
+		});
+	}
+
+	private clearCustomSetting(){
+		this.listSelectedCustomSetting = new Array();
+
+		this.listCustomSettingToSelect = [...this.listCustomSettingBase];
+
+		this.customSettingValues = new Map();
+
+		this._update();
+	}
+
+	private saveCustomSetting(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving Custom Settings...',
+		}, async (progress) => {
+			let listRecordsToCreate = new Array<CustomSetting>;
+			let listRecordsToDelete = new Array<CustomSetting>;
+			let recordsMap = new Map();
+			let listErrors = new Array();
+
+			for(let [key, value] of this.customSettingValues){
+				for(let [keyRecord, valueRecord] of this.customSettingValues.get(key)){
+					let record: CustomSetting = {};
+					record.Id = valueRecord.id;
+					record.ParentId = key;
+					record.SetupEntityId = keyRecord;
+					
+					if(!record.Id && valueRecord.checked){
+						listRecordsToCreate.push(record);
+					}else if(record.Id && !valueRecord.checked){
+						listRecordsToDelete.push(record.Id);
+					}
+
+					recordsMap.set(record.Id, record);
+				}
+			}
+
+			if(listRecordsToCreate.length){
+				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+
+				for(let x in listResultCreate){
+					let result = listResultCreate[x];
+					let recordInfo = listRecordsToCreate[x];
+
+					if(result.success){
+						this.customSettingValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapCustomSetting.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+			
+			if(listRecordsToDelete.length){
+				let listResultDelete = await dml.remove(this.connection, 'SetupEntityAccess', listRecordsToDelete);
+
+				for(let x in listResultDelete){
+					let result = listResultDelete[x];
+					let recordInfo = recordsMap.get(listRecordsToDelete[x]);
+
+					if(result.success){
+						this.customSettingValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = null;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapCustomSetting.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+
+			this.endDML('Custom Settings', listErrors);
 		});
 	}
 
@@ -1270,6 +1504,10 @@ export class PageView{
 
 			listScripts.push(webview.asWebviewUri(
 				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'apexClass.js')
+			));
+
+			listScripts.push(webview.asWebviewUri(
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'customSetting.js')
 			));
 
 			listStyles.push(webview.asWebviewUri(
