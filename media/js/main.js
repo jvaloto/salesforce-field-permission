@@ -137,3 +137,22 @@ function getValues(type, value){
 
   return mapToReturn;
 }
+
+function updateListToSelect(inputHTML, listValues){
+  let inputSelect = document.querySelector(inputHTML);
+
+  inputSelect.innerHTML = '';
+  inputSelect.value = '';
+
+  if(listValues.length){
+      listValues.forEach(item =>{
+          let newOption = document.createElement('option');
+          newOption.value = item.id;
+          newOption.innerHTML = item.text;
+          
+          inputSelect.appendChild(newOption);
+      });
+      
+      inputSelect.value = listValues[0].id;
+  }
+};
