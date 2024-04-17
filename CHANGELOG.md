@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.5.0
+
+- Set permissions for custom setting
+- Internal structure changes
+
 ## 0.4.0
 
 - Set permissions for apex class

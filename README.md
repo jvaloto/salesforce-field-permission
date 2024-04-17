@@ -6,7 +6,7 @@ Mass update permissions for different metadata on custom permission sets.
 
 If you spent a lot of time setting permissions on permission sets, this extension is for you!
 
-This extension uses [Salesforce CLI](https://github.com/forcedotcom/salesforcedx-vscode) and [JSforce](https://github.com/jsforce/jsforce) (API v48.0) to mass update different fields, objects and apex class permissions on permission sets directly in your VS Code using authenticated orgs from Salesforce CLI.
+This extension uses [Salesforce CLI](https://github.com/forcedotcom/salesforcedx-vscode) and [JSforce](https://github.com/jsforce/jsforce) (API v48.0) to mass update different fields, objects, apex class and custom setting permissions on permission sets directly in your VS Code using authenticated orgs from Salesforce CLI.
 
 You can set org and permission sets as default and when you open the page these settings are pre-filled and you can use less clicks (and time :wink:).
 
@@ -26,6 +26,7 @@ You can set org and permission sets as default and when you open the page these 
 - Create/Update permission set for fields
 - Create/Update permission set for objects
 - Create/Update permission set for apex class
+- Create/Update permission set for custom setting
 - Set org as default for next use
 - Set permission set as default for next use
 
@@ -39,17 +40,7 @@ Open Command Pallet and use this command:
 
 Select permission sets, add fields, objects and apex classes and change the permissions!
 
-### Fields
-
-![fields.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/print_fields.png?raw=true)
-
-### Objects
-
-![objects.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/print_objects.png?raw=true)
-
-### Apex Class
-
-![apexClass.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/print_apex_class.png?raw=true)
+![image.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/print.png?raw=true)
 
 ## Release Notes
 
