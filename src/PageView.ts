@@ -14,6 +14,8 @@ import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
 import { ApexClass } from './type/ApexClass';
 import { CustomSetting } from './type/CustomSetting';
+import { SingleOptionDML } from './type/SingleOptionDML';
+import { SingleOptionPermission } from './type/SingleOptionPermission';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -36,31 +38,21 @@ export class PageView{
 	private connection: jsforce.Connection;
 	private permissionsMap: Map<any, any>;
 	private listPermissionSetBase: Array<PermissionSet>;
-	private listApexClassBase: Array<string>;
-	private listCustomSettingBase: Array<string>;
 	private tabFocus: string;
 	private subTabFocus: string;
 	private isInputFieldFocus: boolean;
-
-	public apexClassValues: Map<any, any>;
+	
 	public checkedDefaultOrg: boolean;
 	public checkedDefaultPermissionSet: boolean;
-	public customSettingValues: Map<any, any>;
 	public fieldValues: Map<any, any>;
 	public isConnected: boolean;
 	public isLoading: boolean;
-	public listApexClassToSelect: Array<any>;
-	public listCustomSettingToSelect: Array<any>;
 	public listFieldObject: Array<any>;
 	public listObjectAll: Array<any>;
 	public listObjectToSelect: Array<any>;
 	public listOrgs: Array<string>;
-	public listSelectedApexClass: Array<string>;
-	public listSelectedCustomSetting: Array<string>;
 	public listSelectedObjects: Array<string>;
 	public loadingText: string;
-	public mapApexClass: Map<string, any>;
-	public mapCustomSetting: Map<string, any>;
 	public objectToDescribe: string;
 	public objectValues: Map<any, any>;
 	public org: string;
@@ -73,6 +65,18 @@ export class PageView{
 	public selectedObject: string;
 	public selectedPermissions: Array<any>;
 	public showModal: boolean;
+	
+	public apexClassValues: Map<any, any>;
+	public listApexClassBase: Array<string>;
+	public listApexClassToSelect: Array<any>;
+	public listSelectedApexClass: Array<string>;
+	public mapApexClass: Map<string, any>;
+	
+	public customSettingValues: Map<any, any>;
+	public listCustomSettingBase: Array<string>;
+	public listCustomSettingToSelect: Array<any>;
+	public listSelectedCustomSetting: Array<string>;
+	public mapCustomSetting: Map<string, any>;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -101,23 +105,14 @@ export class PageView{
 	}
 
 	private newInstance(){
-		this.apexClassValues = new Map();
-		this.customSettingValues = new Map();
 		this.fieldValues = new Map();
 		this.isConnected = false;
 		this.isLoading = true;
-		this.listApexClass = new Array();
-		this.listApexClassToSelect = new Array();
-		this.listCustomSettingToSelect = new Array();
 		this.listFieldObject = new Array();
 		this.listObjectAll = new Array();
 		this.listObjectToSelect = new Array();
 		this.listPermissionSetBase = new Array<PermissionSet>;
-		this.listSelectedApexClass = new Array();
-		this.listSelectedCustomSetting = new Array();
 		this.listSelectedObjects = new Array();
-		this.mapApexClass = new Map();
-		this.mapCustomSetting = new Map();
 		this.objectValues = new Map();
 		this.pageMessageIsActive = false;
 		this.pageMessageText = new Array();
@@ -128,6 +123,18 @@ export class PageView{
 		this.selectedObject = '';
 		this.selectedPermissions = new Array();
 		this.showModal = false;
+		
+		this.apexClassValues = new Map();
+		this.listApexClassBase = new Array();
+		this.listApexClassToSelect = new Array();
+		this.listSelectedApexClass = new Array();
+		this.mapApexClass = new Map();
+		
+		this.customSettingValues = new Map();
+		this.listCustomSettingBase = new Array();
+		this.listCustomSettingToSelect = new Array();
+		this.listSelectedCustomSetting = new Array();
+		this.mapCustomSetting = new Map();
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -272,52 +279,52 @@ export class PageView{
 						this.setTabFocus(message.text.tab, message.text.subTab);
 
 						break;
-					case 'ADD-APEX-CLASS':
-						this.addApexClass(message.text);
+					case 'ADD-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.addApexClass(message.text.id);
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.addCustomSetting(message.text.id);
+						}
 
 						break;
-					case 'CLEAR-APEX-CLASS':
-						this.clearApexClass();
+					case 'REMOVE-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.removeApexClass(message.text.id);
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.removeCustomSetting(message.text.id);
+						}
 
 						break;
-					case 'CHANGE-VALUE-ALL-APEX-CLASS':
-						this.checkAllPermissionApexClass(message.text.checked, message.text.permissionId);
+					case 'CHANGE-VALUE-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.setApexClassValue(message.text.checked, message.text.permissionId, message.text.id);
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.setCustomSettingValue(message.text.checked, message.text.permissionId, message.text.id);
+						}
 
 						break;
-					case 'CHANGE-VALUE-APEX-CLASS':
-						this.setApexClassValue(message.text.checked, message.text.permissionId, message.text.apexClassId);
+					case 'CHANGE-VALUE-ALL-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.checkAllPermissionApexClass(message.text.checked, message.text.permissionId);
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.checkAllPermissionCustomSetting(message.text.checked, message.text.permissionId);
+						}
 
 						break;
-					case 'REMOVE-APEX-CLASS':
-						this.removeApexClass(message.text);
+					case 'SAVE-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.saveApexClass();
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.saveCustomSetting();
+						}
 
 						break;
-					case 'SAVE-APEX-CLASS':
-						this.saveApexClass();
-
-						break;
-					case 'ADD-CUSTOM-SETTING':
-						this.addCustomSetting(message.text);
-
-						break;
-					case 'CLEAR-CUSTOM-SETTING':
-						this.clearCustomSetting();
-
-						break;
-					case 'CHANGE-VALUE-ALL-CUSTOM-SETTING':
-						this.checkAllPermissionCustomSetting(message.text.checked, message.text.permissionId);
-
-						break;
-					case 'CHANGE-VALUE-CUSTOM-SETTING':
-						this.setCustomSettingValue(message.text.checked, message.text.permissionId, message.text.customSettingId);
-
-						break;
-					case 'REMOVE-CUSTOM-SETTING':
-						this.removeCustomSetting(message.text);
-
-						break;
-					case 'SAVE-CUSTOM-SETTING':
-						this.saveCustomSetting();
+					case 'CLEAR-SINGLE-OPTION':
+						if(message.text.option === 'APEX-CLASS'){
+							this.clearApexClass();
+						}else if(message.text.option === 'CUSTOM-SETTING'){
+							this.clearCustomSetting();
+						}
 
 						break;
 				}
@@ -951,10 +958,7 @@ export class PageView{
 
 		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
 
-		this._panel.webview.postMessage({
-			command: 'JS-UPDATE-LIST-APEX-CLASS'
-			, text: this.listApexClassToSelect
-		});
+		this.updateJSListSingleOption(this.listApexClassToSelect);
 	}
 
 	private async loadApexClassPermissions(checkPermission: boolean){
@@ -1119,10 +1123,7 @@ export class PageView{
 
 		this.listSelectedCustomSetting = this.listSelectedCustomSetting.filter(e => e !== customSettingId);
 
-		this._panel.webview.postMessage({
-			command: 'JS-UPDATE-LIST-CUSTOM-SETTING'
-			, text: this.listCustomSettingToSelect
-		});
+		this.updateJSListSingleOption(this.listCustomSettingToSelect);
 	}
 
 	private async loadCustomSettingPermissions(checkPermission: boolean){
@@ -1503,11 +1504,7 @@ export class PageView{
 			));
 
 			listScripts.push(webview.asWebviewUri(
-				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'apexClass.js')
-			));
-
-			listScripts.push(webview.asWebviewUri(
-				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'customSetting.js')
+				vscode.Uri.joinPath(this._extensionUri, 'media/js/', 'singlePermission.js')
 			));
 
 			listStyles.push(webview.asWebviewUri(
@@ -1615,6 +1612,13 @@ export class PageView{
 		});
 
 		this.isInputFieldFocus = false;
+	}
+
+	private updateJSListSingleOption(listToUpdate: Array<any>){
+		this._panel.webview.postMessage({
+			command: 'JS-UPDATE-LIST-SINGLE-OPTION'
+			, text: listToUpdate
+		});
 	}
 }
 
