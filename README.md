@@ -48,7 +48,7 @@ SFP: Open - Salesforce Field Permission
 
 Select permission sets, add fields, objects and apex classes and change the permissions!
 
-![image.png](https://github.com/jvaloto/salesforce-field-permission/blob/main/media/readme/print.png?raw=true)
+![image.png](https://raw.githubusercontent.com/jvaloto/salesforce-field-permission/90327eb90ac1f346a9eb7d14efc310f7a222ed90/media/readme/print.png)
 
 ## Release Notes
 
