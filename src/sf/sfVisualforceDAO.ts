@@ -9,10 +9,10 @@ export async function getAll(connection: jsforce.Connection){
     let soql = `
         SELECT Id
             , Name
-            , NamespacePrefix 
-        FROM ApexClass 
-        WHERE Status = 'Active' 
-        ORDER BY Name ASC
+            , NamespacePrefix
+        FROM ApexPage
+        ORDER BY NamespacePrefix
+            , Name
     `;
 
     await connection.query(soql)
@@ -33,5 +33,5 @@ export async function getAll(connection: jsforce.Connection){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
-    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexClass', listSetupEntityId, listIdPermissionSet);
+    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexPage', listSetupEntityId, listIdPermissionSet);
 }

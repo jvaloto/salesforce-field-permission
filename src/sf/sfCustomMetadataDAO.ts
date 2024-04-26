@@ -8,11 +8,14 @@ export async function getAll(connection: jsforce.Connection){
 
     let soql = `
         SELECT Id
-            , Name
+            , DurableId
             , NamespacePrefix 
-        FROM ApexClass 
-        WHERE Status = 'Active' 
-        ORDER BY Name ASC
+            , QualifiedApiName 
+        FROM EntityDefinition 
+        WHERE IsCustomizable = true 
+            AND IsCustomSetting = false
+            AND QualifiedApiName LIKE '%__mdt'
+        ORDER BY QualifiedApiName ASC
     `;
 
     await connection.query(soql)
@@ -20,9 +23,9 @@ export async function getAll(connection: jsforce.Connection){
         result.records.forEach((record: any) =>{
             // @ts-ignore
             let newRecord: SinglePermission = {};
-            newRecord.id = util.getId(record.Id);
+            newRecord.id = util.getId(record.DurableId);
             newRecord.prefix = record.NamespacePrefix;
-            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.Name;
+            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.QualifiedApiName;
             newRecord.label = newRecord.name;
 
             listToReturn.push(newRecord);
@@ -33,5 +36,5 @@ export async function getAll(connection: jsforce.Connection){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
-    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexClass', listSetupEntityId, listIdPermissionSet);
+    return await sfSinglePermissionDAO.getPermissions(connection, 'CustomEntityDefinition', listSetupEntityId, listIdPermissionSet);
 }

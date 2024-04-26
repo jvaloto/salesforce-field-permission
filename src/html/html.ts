@@ -1,12 +1,11 @@
 import * as vscode from 'vscode';
-import { PageView } from './PageView';
-import * as htmlField from './html/htmlField';
-import * as htmlObject from './html/htmlObject';
-import * as htmlConnection from './html/htmlConnection';
-import * as htmlPermissionSet from './html/htmlPermissionSet';
-import * as htmlObjectFieldModal from './html/htmlObjectFieldModal';
-import * as htmlApexClass from './html/htmlApexClass';
-import * as htmlCustomSetting from './html/htmlCustomSetting';
+import { PageView } from '../PageView';
+import * as htmlField from './htmlField';
+import * as htmlObject from './htmlObject';
+import * as htmlConnection from './htmlConnection';
+import * as htmlPermissionSet from './htmlPermissionSet';
+import * as htmlObjectFieldModal from './htmlObjectFieldModal';
+import * as htmlSinglePermission from './htmlSinglePermission';
 
 export class html{
     pageView: PageView;
@@ -124,6 +123,9 @@ export class html{
         listTabs.push({id: 'field', label: "Fields"});
         listTabs.push({id: 'object', label: "Objects"});
         listTabs.push({id: 'apex-class', label: "Apex Class"});
+        listTabs.push({id: 'visualforce', label: "Visualforce Pages"});
+        listTabs.push({id: 'custom-permission', label: "Custom Permissions"});
+        listTabs.push({id: 'custom-metadata', label: "Custom Metadata"});
         listTabs.push({id: 'custom-setting', label: "Custom Settings"});
 
         let toReturn = `
@@ -155,9 +157,7 @@ export class html{
 
             ${htmlObject.getContent(this.pageView)}
 
-            ${htmlApexClass.getContent(this.pageView)}
-
-            ${htmlCustomSetting.getContent(this.pageView)}
+            ${htmlSinglePermission.getContent(this.pageView)}
         `;
 
         return toReturn;

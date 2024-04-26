@@ -8,11 +8,10 @@ export async function getAll(connection: jsforce.Connection){
 
     let soql = `
         SELECT Id
-            , Name
-            , NamespacePrefix 
-        FROM ApexClass 
-        WHERE Status = 'Active' 
-        ORDER BY Name ASC
+            , DeveloperName
+            , NamespacePrefix
+        FROM CustomPermission 
+        ORDER BY DeveloperName ASC
     `;
 
     await connection.query(soql)
@@ -22,7 +21,7 @@ export async function getAll(connection: jsforce.Connection){
             let newRecord: SinglePermission = {};
             newRecord.id = util.getId(record.Id);
             newRecord.prefix = record.NamespacePrefix;
-            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.Name;
+            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.DeveloperName;
             newRecord.label = newRecord.name;
 
             listToReturn.push(newRecord);
@@ -33,5 +32,5 @@ export async function getAll(connection: jsforce.Connection){
 }
 
 export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
-    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexClass', listSetupEntityId, listIdPermissionSet);
+    return await sfSinglePermissionDAO.getPermissions(connection, 'CustomPermission', listSetupEntityId, listIdPermissionSet);
 }

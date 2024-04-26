@@ -6,10 +6,14 @@ export async function getAll(connection: jsforce.Connection){
     let listToReturn = new Array();
 
     let soql = `
-        SELECT QualifiedApiName 
+        SELECT Id
+            , DurableId
+            , NamespacePrefix 
+            , QualifiedApiName  
         FROM EntityDefinition 
         WHERE IsCustomizable = true 
             AND IsCustomSetting = false 
+            AND ( NOT QualifiedApiName LIKE '%__mdt' )
         ORDER BY QualifiedApiName ASC
     `;
 
