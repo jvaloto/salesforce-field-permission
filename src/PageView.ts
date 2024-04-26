@@ -10,6 +10,7 @@ import * as sfFieldDAO from './sf/sfFieldDAO';
 import * as sfCustomSettingDAO from './sf/sfCustomSettingDAO';
 import * as sfVisualforceDAO from './sf/sfVisualforceDAO';
 import * as sfCustomMetadataDAO from './sf/sfCustomMetadataDAO';
+import * as sfCustomPermissionDAO from './sf/sfCustomPermissionDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
@@ -27,7 +28,8 @@ const TYPES = {
 	APEX_CLASS: 'apex-class',
 	CUSTOM_SETTING: 'custom-setting',
 	VISUALFORCE: 'visualforce',
-	CUSTOM_METADATA: 'custom-metadata'
+	CUSTOM_METADATA: 'custom-metadata',
+	CUSTOM_PERMISSION: 'custom-permission',
 };
 
 export class PageView{
@@ -93,6 +95,12 @@ export class PageView{
 	public listCustomMetadataToSelect: Array<any>;
 	public listSelectedCustomMetadata: Array<string>;
 	public mapCustomMetadata: Map<string, any>;
+
+	public customPermissionValues: Map<any, any>;
+	public listCustomPermissionBase: Array<SinglePermission>;
+	public listCustomPermissionToSelect: Array<any>;
+	public listSelectedCustomPermission: Array<string>;
+	public mapCustomPermission: Map<string, any>;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -163,6 +171,12 @@ export class PageView{
 		this.listCustomMetadataToSelect = new Array();
 		this.listSelectedCustomMetadata = new Array();
 		this.mapCustomMetadata = new Map();
+
+		this.customPermissionValues = new Map();
+		this.listCustomPermissionBase = new Array();
+		this.listCustomPermissionToSelect = new Array();
+		this.listSelectedCustomPermission = new Array();
+		this.mapCustomPermission = new Map();
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -318,6 +332,8 @@ export class PageView{
 							this.addVisualforce(message.text.id);
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.addCustomMetadata(message.text.id);
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.addCustomPermission(message.text.id);
 						}
 
 						break;
@@ -330,6 +346,8 @@ export class PageView{
 							this.removeVisualforce(message.text.id);
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.removeCustomMetadata(message.text.id);
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.removeCustomPermission(message.text.id);
 						}
 
 						break;
@@ -342,6 +360,8 @@ export class PageView{
 							this.setVisualforceValue(message.text.checked, message.text.permissionId, message.text.id);
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.setCustomMetadataValue(message.text.checked, message.text.permissionId, message.text.id);
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.setCustomPermissionValue(message.text.checked, message.text.permissionId, message.text.id);
 						}
 
 						break;
@@ -354,6 +374,8 @@ export class PageView{
 							this.checkAllPermissionVisualforce(message.text.checked, message.text.permissionId);
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.checkAllPermissionCustomMetadata(message.text.checked, message.text.permissionId);
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.checkAllPermissionCustomPermission(message.text.checked, message.text.permissionId);
 						}
 
 						break;
@@ -366,6 +388,8 @@ export class PageView{
 							this.saveVisualforce();
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.saveCustomMetadata();
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.saveCustomPermission();
 						}
 
 						break;
@@ -378,6 +402,8 @@ export class PageView{
 							this.clearVisualforce();
 						}else if(message.text.option === 'CUSTOM-METADATA'){
 							this.clearCustomMetadata();
+						}else if(message.text.option === 'CUSTOM-PERMISSION'){
+							this.clearCustomPermission();
 						}
 
 						break;
@@ -464,6 +490,10 @@ export class PageView{
 				progress.report({ message: "Loading Visualforce Pages..." });
 				
 				await this.loadVisualforce();
+
+				progress.report({ message: "Loading Custom Permissions..." });
+				
+				await this.loadCustomPermission();
 
 				progress.report({ message: "Loading Custom Metadata..." });
 				
@@ -557,6 +587,17 @@ export class PageView{
 
 		this.listCustomMetadataToSelect.forEach((customMetadata: any) =>{
 			this.mapCustomMetadata.set(customMetadata.id, customMetadata);
+		});
+	}
+
+	private async loadCustomPermission(){
+		this.listCustomPermissionBase = 
+			await sfCustomPermissionDAO.getAll(this.connection);
+
+		this.listCustomPermissionToSelect = [...this.listCustomPermissionBase];
+
+		this.listCustomPermissionToSelect.forEach((customPermission: any) =>{
+			this.mapCustomPermission.set(customPermission.id, customPermission);
 		});
 	}
 
@@ -799,6 +840,8 @@ export class PageView{
 		await this.loadVisualforcePermissions(true);
 
 		await this.loadCustomMetadataPermissions(true);
+
+		await this.loadCustomPermissionPermissions(true);
 	}
 
 	private creatObjectPermissions(listPermission: Array<any>, listObjects: Array<string>){
@@ -869,6 +912,7 @@ export class PageView{
 			let listResultVisualforcePermission;
 			let listResultCustomSettingPermission;
 			let listResultCustomMetadataPermission;
+			let listResultCustomPermissionPermission;
 			this.selectedPermissions = new Array();
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.listPermissionSetBase];
@@ -941,6 +985,14 @@ export class PageView{
 				filterList(listResultCustomMetadataPermission, listPermissionsToFilter)
 			);
 
+			// custom permission
+			listResultCustomPermissionPermission = 
+				await sfCustomPermissionDAO.getPermissions(this.connection, this.listSelectedCustomPermission);
+
+			listPermissionsToFilter.push(...
+				filterList(listResultCustomPermissionPermission, listPermissionsToFilter)
+			);
+
 			// default process
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
@@ -966,6 +1018,8 @@ export class PageView{
 				this.setTabFocus(TYPES.APEX_CLASS);
 			}else if(this.listSelectedVisualforce.length){
 				this.setTabFocus(TYPES.VISUALFORCE);
+			}else if(this.listSelectedCustomPermission.length){
+				this.setTabFocus(TYPES.CUSTOM_PERMISSION);
 			}else if(this.listSelectedCustomMetadata.length){
 				this.setTabFocus(TYPES.CUSTOM_METADATA);
 			}else if(this.listSelectedCustomSetting.length){
@@ -1714,6 +1768,174 @@ export class PageView{
 			}
 
 			this.endDML('Custom Metadata', listErrors);
+		});
+	}
+
+	private addCustomPermission(id: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Custom Permission...',
+		}, async (progress) => {
+			this.createMessage(false);
+			
+			if(id){
+				if(!this.listSelectedCustomPermission.includes(id)){
+					this.listSelectedCustomPermission.push(id);
+					
+					this.listCustomPermissionToSelect = 
+						this.listCustomPermissionToSelect.filter(e => e.id !== id);
+					
+					await this.loadCustomPermissionPermissions(this.selectedPermissions.length > 0);
+
+					this._update();
+				}
+			}
+		});
+	}
+
+	private removeCustomPermission(id: string){
+		if(this.selectedPermissions.length){
+			this.selectedPermissions.forEach(permission =>{
+				this.customPermissionValues.get(permission.id).delete(id);
+			});
+		}
+
+		this.listCustomPermissionToSelect.push(this.mapCustomPermission.get(id));
+
+		this.listCustomPermissionToSelect.sort((a,b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
+		this.listSelectedCustomPermission = this.listSelectedCustomPermission.filter(e => e !== id);
+
+		this._update();
+	}
+
+	private async loadCustomPermissionPermissions(checkPermission: boolean){
+		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
+
+		let listCustomPermissionPermission = new Array<SetupEntityAccess>;
+		
+		if(checkPermission){
+			listCustomPermissionPermission = 
+				await sfCustomPermissionDAO.getPermissions(this.connection, this.listSelectedCustomPermission, listIdPermissionSetToFilter);
+		}
+
+		listCustomPermissionPermission.forEach(permission =>{
+			let key1 = permission.ParentId;
+			let key2 = permission.SetupEntityId;
+
+			if(!this.customPermissionValues.has(key1)){
+				this.customPermissionValues.set(key1, new Map());
+			}
+	
+			if(!this.customPermissionValues.get(key1).has(key2)){
+				this.customPermissionValues.get(key1).set(key2, {
+					id: permission.Id, 
+					checked: true
+				});
+			}
+		});
+
+		listIdPermissionSetToFilter.forEach(permissionId =>{
+			let key1 = permissionId;
+
+			if(!this.customPermissionValues.has(key1)){
+				this.customPermissionValues.set(key1, new Map());
+			}
+				
+			this.listSelectedCustomPermission.forEach(customPermissionId =>{
+				let key2 = customPermissionId;
+
+				if(!this.customPermissionValues.get(key1).has(key2)){
+					this.customPermissionValues.get(key1).set(key2, {
+						id: null, 
+						checked: false
+					});
+				}
+			});
+		});
+	}
+
+	private setCustomPermissionValue(checked: boolean, permissionId: string, id: string){
+		this.customPermissionValues.get(permissionId).get(id).checked = checked;
+	}
+
+	private checkAllPermissionCustomPermission(checked: boolean, permissionId: string){
+		this.listSelectedCustomPermission.forEach(id =>{
+			this.customPermissionValues.get(permissionId).get(id).checked = checked;
+		});
+	}
+
+	private clearCustomPermission(){
+		this.listSelectedCustomPermission = new Array();
+
+		this.listCustomPermissionToSelect = [...this.listCustomPermissionBase];
+
+		this.customPermissionValues = new Map();
+
+		this._update();
+	}
+
+	private saveCustomPermission(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving Custom Permissions...',
+		}, async (progress) => {
+			let listRecordsToCreate = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<string>;
+			let recordsMap = new Map();
+			let listErrors = new Array();
+
+			for(let [key, value] of this.customPermissionValues){
+				for(let [keyRecord, valueRecord] of this.customPermissionValues.get(key)){
+					// @ts-ignore
+					let record: SetupEntityAccess = {};
+					record.Id = valueRecord.id;
+					record.ParentId = key;
+					record.SetupEntityId = keyRecord;
+					
+					if(!record.Id && valueRecord.checked){
+						listRecordsToCreate.push(record);
+					}else if(record.Id && !valueRecord.checked){
+						listRecordsToDelete.push(record.Id);
+					}
+
+					recordsMap.set(record.Id, record);
+				}
+			}
+
+			if(listRecordsToCreate.length){
+				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+
+				for(let x in listResultCreate){
+					// @ts-ignore
+					let result = listResultCreate[x];
+					// @ts-ignore
+					let recordInfo = listRecordsToCreate[x];
+
+					if(result.success){
+						this.customPermissionValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapCustomPermission.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+			
+			if(listRecordsToDelete.length){
+				let listResultDelete = await dml.remove(this.connection, 'SetupEntityAccess', listRecordsToDelete);
+
+				for(let x in listResultDelete){
+					let result = listResultDelete[x];
+					let recordInfo = recordsMap.get(listRecordsToDelete[x]);
+
+					if(result.success){
+						this.customPermissionValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = null;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapCustomPermission.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+
+			this.endDML('Custom Permissions', listErrors);
 		});
 	}
 

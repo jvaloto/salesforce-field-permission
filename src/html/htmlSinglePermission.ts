@@ -47,6 +47,16 @@ export function getContent(pageView: PageView){
         mapRecord: pageView.mapCustomMetadata
     });
 
+    listOptions.push({
+        identifier: 'custom-permission',
+        label: 'Custom Permission',
+        labelPlural: 'Custom Permissions',
+        listToSelect: pageView.listCustomPermissionToSelect,
+        listSelected: pageView.listSelectedCustomPermission,
+        mapValues: pageView.customPermissionValues,
+        mapRecord: pageView.mapCustomPermission
+    });
+
     listOptions.forEach(option =>{
         toReturn += `
         <div class="slds-tabs_default__content tab-content slds-hide" data-id="${option.identifier}">

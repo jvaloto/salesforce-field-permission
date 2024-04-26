@@ -124,6 +124,7 @@ export class html{
         listTabs.push({id: 'object', label: "Objects"});
         listTabs.push({id: 'apex-class', label: "Apex Class"});
         listTabs.push({id: 'visualforce', label: "Visualforce Pages"});
+        listTabs.push({id: 'custom-permission', label: "Custom Permissions"});
         listTabs.push({id: 'custom-metadata', label: "Custom Metadata"});
         listTabs.push({id: 'custom-setting', label: "Custom Settings"});
 
