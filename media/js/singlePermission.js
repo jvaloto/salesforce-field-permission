@@ -5,6 +5,7 @@
     listOptions.push('apex-class');
     listOptions.push('visualforce');
     listOptions.push('custom-setting');
+    listOptions.push('custom-metadata');
 
     listOptions.forEach(option =>{
         let optionUpperCase = option.toUpperCase();

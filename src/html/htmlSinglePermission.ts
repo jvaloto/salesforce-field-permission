@@ -37,6 +37,16 @@ export function getContent(pageView: PageView){
         mapRecord: pageView.mapVisualforce
     });
 
+    listOptions.push({
+        identifier: 'custom-metadata',
+        label: 'Custom Metadata',
+        labelPlural: 'Custom Metadata',
+        listToSelect: pageView.listCustomMetadataToSelect,
+        listSelected: pageView.listSelectedCustomMetadata,
+        mapValues: pageView.customMetadataValues,
+        mapRecord: pageView.mapCustomMetadata
+    });
+
     listOptions.forEach(option =>{
         toReturn += `
         <div class="slds-tabs_default__content tab-content slds-hide" data-id="${option.identifier}">
