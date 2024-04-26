@@ -7,8 +7,9 @@ export async function getAll(connection: jsforce.Connection){
     let listToReturn = new Array<SinglePermission>;
 
     let soql = `
-        SELECT 
-            DurableId
+        SELECT Id
+            , DurableId
+            , NamespacePrefix 
             , QualifiedApiName 
         FROM EntityDefinition 
         WHERE IsCustomizable = true 
@@ -20,10 +21,11 @@ export async function getAll(connection: jsforce.Connection){
     .then(result =>{
         result.records.forEach((record: any) =>{
             // @ts-ignore
-            let newRecord: CustomSetting = {};
+            let newRecord: SinglePermission = {};
             newRecord.id = util.getId(record.DurableId);
-            newRecord.name = record.QualifiedApiName;
-            newRecord.label = record.QualifiedApiName;
+            newRecord.prefix = record.NamespacePrefix;
+            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.QualifiedApiName;
+            newRecord.label = newRecord.name;
 
             listToReturn.push(newRecord);
         });

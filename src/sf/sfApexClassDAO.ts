@@ -17,13 +17,15 @@ export async function getAll(connection: jsforce.Connection){
 
     await connection.query(soql)
     .then(result =>{
-        result.records.forEach((apexClass: any) =>{
-            listToReturn.push({
-                id: util.getId(apexClass.Id),
-                prefix: apexClass.NamespacePrefix,
-                name: apexClass.Name,
-                label: ( apexClass.NamespacePrefix ? apexClass.NamespacePrefix +'.' : '' ) + apexClass.Name
-            });
+        result.records.forEach((record: any) =>{
+            // @ts-ignore
+            let newRecord: SinglePermission = {};
+            newRecord.id = util.getId(record.Id);
+            newRecord.prefix = record.NamespacePrefix;
+            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.Name;
+            newRecord.label = newRecord.name;
+
+            listToReturn.push(newRecord);
         });
     });
 

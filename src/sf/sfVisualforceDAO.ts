@@ -19,9 +19,11 @@ export async function getAll(connection: jsforce.Connection){
     .then(result =>{
         result.records.forEach((record: any) =>{
             // @ts-ignore
-            let newRecord: Visualforce = {};
+            let newRecord: SinglePermission = {};
             newRecord.id = util.getId(record.Id);
-            newRecord.label = ( record.NamespacePrefix ? record.NamespacePrefix + '.' : '' ) + record.Name;
+            newRecord.prefix = record.NamespacePrefix;
+            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.Name;
+            newRecord.label = newRecord.name;
 
             listToReturn.push(newRecord);
         });
