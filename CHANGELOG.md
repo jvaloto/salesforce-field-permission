@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.6.0
+
+- Set permissions for custom metadata types
+- Internal structure changes
+- Bug fixes
+
 ## 0.5.0
 
 - Set permissions for custom setting
