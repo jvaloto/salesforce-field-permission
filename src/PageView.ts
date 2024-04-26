@@ -671,9 +671,7 @@ export class PageView{
 
 				this.setDefaultPermissionSets(this.checkedDefaultPermissionSet);
 
-				await this.loadApexClassPermissions(true);
-
-				await this.loadCustomSettingPermissions(true);
+				await this.loadSinglePermissions();
 
 				if(isAddMetadata){
 					await this.addMetadata(this.selectedFields, [permissionRecord.id]);
@@ -750,6 +748,14 @@ export class PageView{
 				}
 			});
 		});
+	}
+
+	private async loadSinglePermissions(){
+		await this.loadApexClassPermissions(true);
+
+		await this.loadCustomSettingPermissions(true);
+
+		await this.loadVisualforcePermissions(true);
 	}
 
 	private creatObjectPermissions(listPermission: Array<any>, listObjects: Array<string>){
@@ -898,11 +904,7 @@ export class PageView{
 
 			this.creatObjectPermissions(listResultObjectPermission, this.listSelectedObjects);
 
-			await this.loadApexClassPermissions(true);
-
-			await this.loadCustomSettingPermissions(true);
-
-			await this.loadVisualforcePermissions(true);
+			await this.loadSinglePermissions();
 
 			if(this.selectedFields.length){
 				this.setTabFocus(TYPES.FIELD);
@@ -910,10 +912,10 @@ export class PageView{
 				this.setTabFocus(TYPES.OBJECT);
 			}else if(this.listSelectedApexClass.length){
 				this.setTabFocus(TYPES.APEX_CLASS);
-			}else if(this.listSelectedCustomSetting.length){
-				this.setTabFocus(TYPES.CUSTOM_SETTING);
 			}else if(this.listSelectedVisualforce.length){
 				this.setTabFocus(TYPES.VISUALFORCE);
+			}else if(this.listSelectedCustomSetting.length){
+				this.setTabFocus(TYPES.CUSTOM_SETTING);
 			}
 
 			this._update();
