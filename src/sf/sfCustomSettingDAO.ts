@@ -1,10 +1,10 @@
 import jsforce from 'jsforce';
-import { CustomSettingPermission } from '../type/CustomSettingPermission';
-import { CustomSetting } from '../type/CustomSetting';
 import * as util from '../util';
+import * as sfSinglePermissionDAO from './sfSinglePermissionDAO';
+import { SinglePermission } from '../type/SinglePermission';
 
 export async function getAll(connection: jsforce.Connection){
-    let listToReturn = new Array<CustomSetting>;
+    let listToReturn = new Array<SinglePermission>;
 
     let soql = `
         SELECT 
@@ -22,6 +22,7 @@ export async function getAll(connection: jsforce.Connection){
             // @ts-ignore
             let newRecord: CustomSetting = {};
             newRecord.id = util.getId(record.DurableId);
+            newRecord.name = record.QualifiedApiName;
             newRecord.label = record.QualifiedApiName;
 
             listToReturn.push(newRecord);
@@ -31,41 +32,6 @@ export async function getAll(connection: jsforce.Connection){
     return listToReturn;
 }
 
-export async function getPermissions(connection: jsforce.Connection, listIdCustomSetting: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array<CustomSettingPermission>;
-
-    if(listIdCustomSetting.length){
-        let parentFilter = '';
-
-        if(listIdPermissionSet && listIdPermissionSet.length){
-            parentFilter = ` AND ParentId IN ('${listIdPermissionSet.join("','")}')`;
-        }
-
-        let soql = `
-            SELECT Id
-                , ParentId
-                , SetupEntityId 
-            FROM SetupEntityAccess 
-            WHERE SetupEntityType = 'CustomEntityDefinition' 
-                AND SetupEntityId IN ('${listIdCustomSetting.join("','")}') 
-                AND ( NOT Parent.Name LIKE 'X00e%' ) 
-                AND Parent.IsCustom = true 
-                ${parentFilter}
-        `;
-
-        await connection.query(soql)
-        .then(result =>{
-            result.records.forEach((record: any) =>{
-                // @ts-ignore
-                let newRecord: CustomSettingPermission = {};
-                newRecord.id = util.getId(record.Id);
-                newRecord.permissionId = record.ParentId;
-                newRecord.customSettingId = util.getId(record.SetupEntityId);
-
-                listToReturn.push(newRecord);
-            });
-        });
-    }
-
-    return listToReturn;
+export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
+    return await sfSinglePermissionDAO.getPermissions(connection, 'CustomEntityDefinition', listSetupEntityId, listIdPermissionSet);
 }

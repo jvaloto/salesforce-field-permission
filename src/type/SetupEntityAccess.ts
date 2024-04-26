@@ -1,4 +1,4 @@
-export type ApexClass = {
+export type SetupEntityAccess = {
     Id: string;
     ParentId: string;
     SetupEntityId: string;

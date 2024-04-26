@@ -1,8 +1,10 @@
 import jsforce from 'jsforce';
-import { ApexClassPermission } from '../type/ApexClassPermission';
+import * as util from '../util';
+import * as sfSinglePermissionDAO from './sfSinglePermissionDAO';
+import { SinglePermission } from '../type/SinglePermission';
 
 export async function getAll(connection: jsforce.Connection){
-    let listToReturn = new Array();
+    let listToReturn = new Array<SinglePermission>;
 
     let soql = `
         SELECT Id
@@ -17,7 +19,7 @@ export async function getAll(connection: jsforce.Connection){
     .then(result =>{
         result.records.forEach((apexClass: any) =>{
             listToReturn.push({
-                id: apexClass.Id,
+                id: util.getId(apexClass.Id),
                 prefix: apexClass.NamespacePrefix,
                 name: apexClass.Name,
                 label: ( apexClass.NamespacePrefix ? apexClass.NamespacePrefix +'.' : '' ) + apexClass.Name
@@ -28,41 +30,6 @@ export async function getAll(connection: jsforce.Connection){
     return listToReturn;
 }
 
-export async function getPermissions(connection: jsforce.Connection, listIdApexClass: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array<ApexClassPermission>;
-
-    if(listIdApexClass.length){
-        let parentFilter = '';
-
-        if(listIdPermissionSet && listIdPermissionSet.length){
-            parentFilter = ` AND ParentId IN ('${listIdPermissionSet.join("','")}')`;
-        }
-
-        let soql = `
-            SELECT Id
-                , ParentId
-                , SetupEntityId 
-            FROM SetupEntityAccess 
-            WHERE SetupEntityType = 'ApexClass' 
-                AND SetupEntityId IN ('${listIdApexClass.join("','")}') 
-                AND ( NOT Parent.Name LIKE 'X00e%' ) 
-                AND Parent.IsCustom = true 
-                ${parentFilter}
-        `;
-
-        await connection.query(soql)
-        .then(result =>{
-            result.records.forEach((record: any) =>{
-                // @ts-ignore
-                let newRecord: ApexClassPermission = {};
-                newRecord.id = record.Id;
-                newRecord.permissionId = record.ParentId;
-                newRecord.apexClassId = record.SetupEntityId;
-
-                listToReturn.push(newRecord);
-            });
-        });
-    }
-
-    return listToReturn;
+export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
+    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexClass', listSetupEntityId, listIdPermissionSet);
 }

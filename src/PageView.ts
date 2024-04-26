@@ -13,9 +13,7 @@ import * as sfVisualforceDAO from './sf/sfVisualforceDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
-import { ApexClass } from './type/ApexClass';
-import { CustomSetting } from './type/CustomSetting';
-import { VisualforcePermission } from './type/VisualforcePermission';
+import { SetupEntityAccess } from './type/SetupEntityAccess';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -816,35 +814,44 @@ export class PageView{
 			let listResultObjectPermission;
 			let listResultApexClassPermission;
 			let listResultCustomSettingPermission;
+			let listResultVisualforcePermission;
 			this.selectedPermissions = new Array();
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.listPermissionSetBase];
 
 			const filterList = function(records, permissions){
+				let listToReturn = new Array();
+
 				if(records){
 					records.forEach((permission: any) =>{
-						let value = permission.permissionId;
+						let value;
+						
+						if(permission.hasOwnProperty('permissionId')){
+							value = permission.permissionId;
+						}else if(permission.hasOwnProperty('ParentId')){
+							value = permission.ParentId;
+						}
 
-						if(!permissions.includes(value)){
-							permissions.push(value);
+						if(!permissions.includes(value) && !listToReturn.includes(value)){
+							listToReturn.push(value);
 						}
 					});
 				}
 
-				return permissions;
+				return listToReturn;
 			};
 			
 			// field
 			listResultFieldPermission = 
 				await sfFieldDAO.getPermissions(this.connection, this.selectedFields);
 
-			listPermissionsToFilter.push(filterList(listResultFieldPermission, listPermissionsToFilter));
+			listPermissionsToFilter.concat(filterList(listResultFieldPermission, listPermissionsToFilter));
 			
 			// object
 			listResultObjectPermission = 
 				await sfObjectDAO.getPermissions(this.connection, this.listSelectedObjects);
 
-			listPermissionsToFilter.push(
+			listPermissionsToFilter.push(...
 				filterList(listResultObjectPermission, listPermissionsToFilter)
 			);
 			
@@ -852,7 +859,7 @@ export class PageView{
 			listResultApexClassPermission = 
 				await sfApexClassDAO.getPermissions(this.connection, this.listSelectedApexClass);
 
-			listPermissionsToFilter.push(
+			listPermissionsToFilter.push(...
 				filterList(listResultApexClassPermission, listPermissionsToFilter)
 			);
 
@@ -860,7 +867,7 @@ export class PageView{
 			listResultCustomSettingPermission = 
 				await sfCustomSettingDAO.getPermissions(this.connection, this.listSelectedCustomSetting);
 
-			listPermissionsToFilter.push(
+			listPermissionsToFilter.push(...
 				filterList(listResultCustomSettingPermission, listPermissionsToFilter)
 			);
 
@@ -868,7 +875,7 @@ export class PageView{
 			listResultVisualforcePermission = 
 				await sfVisualforceDAO.getPermissions(this.connection, this.listSelectedVisualforce);
 
-			listPermissionsToFilter.push(
+			listPermissionsToFilter.push(...
 				filterList(listResultVisualforcePermission, listPermissionsToFilter)
 			);
 
@@ -891,6 +898,8 @@ export class PageView{
 
 			await this.loadCustomSettingPermissions(true);
 
+			await this.loadVisualforcePermissions(true);
+
 			if(this.selectedFields.length){
 				this.setTabFocus(TYPES.FIELD);
 			}else if(this.listSelectedObjects.length){
@@ -899,6 +908,8 @@ export class PageView{
 				this.setTabFocus(TYPES.APEX_CLASS);
 			}else if(this.listSelectedCustomSetting.length){
 				this.setTabFocus(TYPES.CUSTOM_SETTING);
+			}else if(this.listSelectedVisualforce.length){
+				this.setTabFocus(TYPES.VISUALFORCE);
 			}
 
 			this._update();
@@ -1082,14 +1093,14 @@ export class PageView{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Apex Class...',
 		}, async (progress) => {
-			let listRecordsToCreate = new Array<ApexClass>;
-			let listRecordsToDelete = new Array<ApexClass>;
+			let listRecordsToCreate = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<SetupEntityAccess>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.apexClassValues){
 				for(let [keyApexClass, valueApexClass] of this.apexClassValues.get(key)){
-					let record: ApexClass = {};
+					let record: SetupEntityAccess = {};
 					record.Id = valueApexClass.id;
 					record.ParentId = key;
 					record.SetupEntityId = keyApexClass;
@@ -1247,14 +1258,14 @@ export class PageView{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Custom Settings...',
 		}, async (progress) => {
-			let listRecordsToCreate = new Array<CustomSetting>;
-			let listRecordsToDelete = new Array<CustomSetting>;
+			let listRecordsToCreate = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<SetupEntityAccess>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.customSettingValues){
 				for(let [keyRecord, valueRecord] of this.customSettingValues.get(key)){
-					let record: CustomSetting = {};
+					let record: SetupEntityAccess = {};
 					record.Id = valueRecord.id;
 					record.ParentId = key;
 					record.SetupEntityId = keyRecord;
@@ -1412,14 +1423,14 @@ export class PageView{
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Visualforce Pages...',
 		}, async (progress) => {
-			let listRecordsToCreate = new Array<VisualforcePermission>;
-			let listRecordsToDelete = new Array<VisualforcePermission>;
+			let listRecordsToCreate = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<SetupEntityAccess>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.visualforceValues){
 				for(let [keyRecord, valueRecord] of this.visualforceValues.get(key)){
-					let record: VisualforcePermission = {};
+					let record: SetupEntityAccess = {};
 					record.Id = valueRecord.id;
 					record.ParentId = key;
 					record.SetupEntityId = keyRecord;

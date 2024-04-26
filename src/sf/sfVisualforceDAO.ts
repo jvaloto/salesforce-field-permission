@@ -1,10 +1,10 @@
 import jsforce from 'jsforce';
 import * as util from '../util';
-import { Visualforce } from '../type/Visualforce';
-import { VisualforcePermission } from '../type/VisualforcePermission';
+import * as sfSinglePermissionDAO from './sfSinglePermissionDAO';
+import { SinglePermission } from '../type/SinglePermission';
 
 export async function getAll(connection: jsforce.Connection){
-    let listToReturn = new Array<Visualforce>;
+    let listToReturn = new Array<SinglePermission>;
 
     let soql = `
         SELECT Id
@@ -30,42 +30,6 @@ export async function getAll(connection: jsforce.Connection){
     return listToReturn;
 }
 
-export async function getPermissions(connection: jsforce.Connection, listIdCustomSetting: Array<string>, listIdPermissionSet?: Array<string>){
-    let listToReturn = new Array<VisualforcePermission>;
-
-    if(listIdCustomSetting.length){
-        let parentFilter = '';
-
-        if(listIdPermissionSet && listIdPermissionSet.length){
-            parentFilter = ` AND ParentId IN ('${listIdPermissionSet.join("','")}')`;
-        }
-
-        let soql = `
-            SELECT Id
-                , ParentId
-                , SetupEntityId 
-                , SetupEntityType 
-            FROM SetupEntityAccess 
-            WHERE SetupEntityType = 'ApexPage' 
-                AND SetupEntityId IN ('${listIdCustomSetting.join("','")}') 
-                AND ( NOT Parent.Name LIKE 'X00e%' ) 
-                AND Parent.IsCustom = true 
-                ${parentFilter}
-        `;
-
-        await connection.query(soql)
-        .then(result =>{
-            result.records.forEach((record: any) =>{
-                // @ts-ignore
-                let newRecord: VisualforcePermission = {};
-                newRecord.id = util.getId(record.Id);
-                newRecord.permissionId = record.ParentId;
-                newRecord.visualforceId = util.getId(record.SetupEntityId);
-
-                listToReturn.push(newRecord);
-            });
-        });
-    }
-
-    return listToReturn;
+export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
+    return await sfSinglePermissionDAO.getPermissions(connection, 'ApexPage', listSetupEntityId, listIdPermissionSet);
 }
