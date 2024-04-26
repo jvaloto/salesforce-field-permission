@@ -123,6 +123,7 @@ export class html{
         listTabs.push({id: 'field', label: "Fields"});
         listTabs.push({id: 'object', label: "Objects"});
         listTabs.push({id: 'apex-class', label: "Apex Class"});
+        listTabs.push({id: 'visualforce', label: "Visualforce Pages"});
         listTabs.push({id: 'custom-setting', label: "Custom Settings"});
 
         let toReturn = `

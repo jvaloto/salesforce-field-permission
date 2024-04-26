@@ -3,27 +3,8 @@
 
     let listOptions = new Array();
     listOptions.push('apex-class');
+    listOptions.push('visualforce');
     listOptions.push('custom-setting');
-
-    window.addEventListener('message', event => {
-        const message = event.data;
-
-        switch(message.command){
-          case 'JS-UPDATE-LIST-SINGLE-OPTION':
-            let listValues = new Array();
-
-            message.text.list.forEach(item =>{
-                listValues.push({
-                    id: item.id,
-                    text: item.label
-                });
-            });
-
-            updateListToSelect(`#input-${message.text.option.toLowerCase()}`, listValues);
-    
-            break;
-        }
-    });
 
     listOptions.forEach(option =>{
         let optionUpperCase = option.toUpperCase();
@@ -42,16 +23,8 @@
     
         document.querySelectorAll(`.button-remove-${option}`).forEach(item =>{
             item.addEventListener('click', (event) =>{
-                let itemId = event.target.dataset.id;
-    
-                Array.from(document.querySelector(`#tbody-${option}`).children).forEach(line =>{
-                    if(line.dataset.id === id){
-                        let trLine = document.querySelector(`[data-${option}="${id}"]`);
-                        trLine.classList.add('hidden');
-                        trLine.dataset.id = '';
-                    }
-                });
-    
+                let itemId = event.target.dataset.removeId;
+
                 vscode.postMessage({
                     command: 'REMOVE-SINGLE-OPTION',
                     text: {
