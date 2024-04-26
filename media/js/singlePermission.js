@@ -3,47 +3,8 @@
 
     let listOptions = new Array();
     listOptions.push('apex-class');
-    listOptions.push('custom-setting');
     listOptions.push('visualforce');
-
-    window.addEventListener('message', event => {
-        const message = event.data;
-
-        switch(message.command){
-          case 'JS-UPDATE-LIST-SINGLE-OPTION':
-            let listValues = new Array();
-
-            message.text.listOption.forEach(item =>{
-                listValues.push({
-                    id: item.id,
-                    text: item.label
-                });
-            });
-
-            updateListToSelect(`#input-${message.text.option.toLowerCase()}`, listValues);
-    
-            break;
-        }
-    });
-
-    function updateListToSelect(inputHTML, listValues){
-        let inputSelect = document.querySelector(inputHTML);
-      
-        inputSelect.innerHTML = '';
-        inputSelect.value = '';
-
-        if(listValues.length){
-            listValues.forEach(item =>{
-                let newOption = document.createElement('option');
-                newOption.value = item.id;
-                newOption.innerHTML = item.text;
-                
-                inputSelect.appendChild(newOption);
-            });
-            
-            inputSelect.value = listValues[0].id;
-        }
-      };
+    listOptions.push('custom-setting');
 
     listOptions.forEach(option =>{
         let optionUpperCase = option.toUpperCase();
@@ -64,14 +25,6 @@
             item.addEventListener('click', (event) =>{
                 let itemId = event.target.dataset.removeId;
 
-                document.querySelector(`tr[data-id="${itemId}"]`).remove();
-
-                // Array.from(document.querySelector(`#tbody-${option}`).children)
-                // .filter(e => e.dataset.id === itemId)
-                // .forEach(line =>{
-                //     line.remove();
-                // });
-    
                 vscode.postMessage({
                     command: 'REMOVE-SINGLE-OPTION',
                     text: {

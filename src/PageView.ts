@@ -1008,7 +1008,7 @@ export class PageView{
 
 		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
 
-		this.updateJSListSingleOption(TYPES.APEX_CLASS, this.listApexClassToSelect);
+		this._update();
 	}
 
 	private async loadApexClassPermissions(checkPermission: boolean){
@@ -1173,7 +1173,7 @@ export class PageView{
 
 		this.listSelectedCustomSetting = this.listSelectedCustomSetting.filter(e => e !== customSettingId);
 
-		this.updateJSListSingleOption(TYPES.CUSTOM_SETTING, this.listCustomSettingToSelect);
+		this._update();
 	}
 
 	private async loadCustomSettingPermissions(checkPermission: boolean){
@@ -1338,7 +1338,7 @@ export class PageView{
 
 		this.listSelectedVisualforce = this.listSelectedVisualforce.filter(e => e !== id);
 
-		this.updateJSListSingleOption(TYPES.VISUALFORCE, this.listVisualforceToSelect);
+		this._update();
 	}
 
 	private async loadVisualforcePermissions(checkPermission: boolean){
@@ -1827,18 +1827,6 @@ export class PageView{
 		});
 
 		this.isInputFieldFocus = false;
-	}
-
-	private updateJSListSingleOption(option: string, listToUpdate: Array<any>){
-		this._panel.webview.postMessage({
-			command: 'JS-UPDATE-LIST-SINGLE-OPTION'
-			, text: {
-				option: option,
-				listOption: listToUpdate
-			}
-		});
-
-		this._update();
 	}
 }
 
