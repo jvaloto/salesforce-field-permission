@@ -15,6 +15,7 @@ You can set permissions for these following types:
 - Visualforce Pages
 - Custom Metadata Types
 - Custom Settings
+- Custom Permissions
 
 You can set org and permission sets as default and when you open the page these settings are pre-filled and you can use less clicks (and time :wink:).
 

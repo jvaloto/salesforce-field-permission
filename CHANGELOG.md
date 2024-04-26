@@ -3,6 +3,7 @@
 ## 0.6.0
 
 - Set permissions for custom metadata types
+- Set permissions for custom permissions
 - Internal structure changes
 - Bug fixes
 
