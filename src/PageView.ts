@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as vscode from 'vscode';
 import jsforce from 'jsforce';
 import { getConnection, getOrgs } from './connection';
@@ -14,6 +13,8 @@ import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
 import { SetupEntityAccess } from './type/SetupEntityAccess';
+import { SinglePermission } from './type/SinglePermission';
+import { FieldPermissions } from './type/FieldPermissions';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
@@ -68,19 +69,19 @@ export class PageView{
 	public showModal: boolean;
 	
 	public apexClassValues: Map<any, any>;
-	public listApexClassBase: Array<string>;
+	public listApexClassBase: Array<SinglePermission>;
 	public listApexClassToSelect: Array<any>;
 	public listSelectedApexClass: Array<string>;
 	public mapApexClass: Map<string, any>;
 	
 	public customSettingValues: Map<any, any>;
-	public listCustomSettingBase: Array<string>;
+	public listCustomSettingBase: Array<SinglePermission>;
 	public listCustomSettingToSelect: Array<any>;
 	public listSelectedCustomSetting: Array<string>;
 	public mapCustomSetting: Map<string, any>;
 	
 	public visualforceValues: Map<any, any>;
-	public listVisualforceBase: Array<string>;
+	public listVisualforceBase: Array<SinglePermission>;
 	public listVisualforceToSelect: Array<any>;
 	public listSelectedVisualforce: Array<string>;
 	public mapVisualforce: Map<string, any>;
@@ -197,6 +198,8 @@ export class PageView{
 		// Handle messages from the webview
 		this._panel.webview.onDidReceiveMessage(
 			message => {
+				this.createMessage(false);
+
 				switch(message.command){
 					case 'SELECT-ORG':
 						this.setOrg(message.text);
@@ -733,6 +736,7 @@ export class PageView{
 				}
 
 				if(!this.fieldValues.get(key1).has(key2)){
+					// @ts-ignore
 					let fieldPermission: FieldPermission = {};
 					fieldPermission.id = null;
 					fieldPermission.permissionId = permission.id;
@@ -819,7 +823,7 @@ export class PageView{
 			this.permissionsToSelect = new Array();
 			this.permissionsToSelect = [...this.listPermissionSetBase];
 
-			const filterList = function(records, permissions){
+			const filterList = function(records: Array<any>, permissions: Array<any>){
 				let listToReturn = new Array();
 
 				if(records){
@@ -1025,7 +1029,7 @@ export class PageView{
 	private async loadApexClassPermissions(checkPermission: boolean){
 		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
 
-		let listApexClassPermission = new Array<ApexClassPermission>;
+		let listApexClassPermission = new Array<SetupEntityAccess>;
 		
 		if(checkPermission){
 			listApexClassPermission = 
@@ -1033,8 +1037,8 @@ export class PageView{
 		}
 
 		listApexClassPermission.forEach(permission =>{
-			let key1 = permission.permissionId;
-			let key2 = permission.apexClassId;
+			let key1 = permission.ParentId;
+			let key2 = permission.SetupEntityId;
 
 			if(!this.apexClassValues.has(key1)){
 				this.apexClassValues.set(key1, new Map());
@@ -1042,7 +1046,7 @@ export class PageView{
 	
 			if(!this.apexClassValues.get(key1).has(key2)){
 				this.apexClassValues.get(key1).set(key2, {
-					id: permission.id, 
+					id: permission.Id, 
 					checked: true
 				});
 			}
@@ -1094,12 +1098,13 @@ export class PageView{
 			title: 'Saving Apex Class...',
 		}, async (progress) => {
 			let listRecordsToCreate = new Array<SetupEntityAccess>;
-			let listRecordsToDelete = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<string>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.apexClassValues){
 				for(let [keyApexClass, valueApexClass] of this.apexClassValues.get(key)){
+					// @ts-ignore
 					let record: SetupEntityAccess = {};
 					record.Id = valueApexClass.id;
 					record.ParentId = key;
@@ -1116,10 +1121,13 @@ export class PageView{
 			}
 
 			if(listRecordsToCreate.length){
-				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+				let listResultCreate = 
+					await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
 
 				for(let x in listResultCreate){
+					// @ts-ignore
 					let result = listResultCreate[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToCreate[x];
 
 					if(result.success){
@@ -1190,7 +1198,7 @@ export class PageView{
 	private async loadCustomSettingPermissions(checkPermission: boolean){
 		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
 
-		let listCustomSettingPermission = new Array<CustomSettingPermission>;
+		let listCustomSettingPermission = new Array<SetupEntityAccess>;
 		
 		if(checkPermission){
 			listCustomSettingPermission = 
@@ -1198,8 +1206,8 @@ export class PageView{
 		}
 
 		listCustomSettingPermission.forEach(permission =>{
-			let key1 = permission.permissionId;
-			let key2 = permission.customSettingId;
+			let key1 = permission.ParentId;
+			let key2 = permission.SetupEntityId;
 
 			if(!this.customSettingValues.has(key1)){
 				this.customSettingValues.set(key1, new Map());
@@ -1207,7 +1215,7 @@ export class PageView{
 	
 			if(!this.customSettingValues.get(key1).has(key2)){
 				this.customSettingValues.get(key1).set(key2, {
-					id: permission.id, 
+					id: permission.Id, 
 					checked: true
 				});
 			}
@@ -1259,12 +1267,13 @@ export class PageView{
 			title: 'Saving Custom Settings...',
 		}, async (progress) => {
 			let listRecordsToCreate = new Array<SetupEntityAccess>;
-			let listRecordsToDelete = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<string>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.customSettingValues){
 				for(let [keyRecord, valueRecord] of this.customSettingValues.get(key)){
+					// @ts-ignore
 					let record: SetupEntityAccess = {};
 					record.Id = valueRecord.id;
 					record.ParentId = key;
@@ -1284,7 +1293,9 @@ export class PageView{
 				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
 
 				for(let x in listResultCreate){
+					// @ts-ignore
 					let result = listResultCreate[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToCreate[x];
 
 					if(result.success){
@@ -1355,7 +1366,7 @@ export class PageView{
 	private async loadVisualforcePermissions(checkPermission: boolean){
 		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
 
-		let listVisualforcePermission = new Array<VisualforcePermission>;
+		let listVisualforcePermission = new Array<SetupEntityAccess>;
 		
 		if(checkPermission){
 			listVisualforcePermission = 
@@ -1363,8 +1374,8 @@ export class PageView{
 		}
 
 		listVisualforcePermission.forEach(permission =>{
-			let key1 = permission.permissionId;
-			let key2 = permission.visualforceId;
+			let key1 = permission.ParentId;
+			let key2 = permission.SetupEntityId;
 
 			if(!this.visualforceValues.has(key1)){
 				this.visualforceValues.set(key1, new Map());
@@ -1372,7 +1383,7 @@ export class PageView{
 	
 			if(!this.visualforceValues.get(key1).has(key2)){
 				this.visualforceValues.get(key1).set(key2, {
-					id: permission.id, 
+					id: permission.Id, 
 					checked: true
 				});
 			}
@@ -1418,18 +1429,19 @@ export class PageView{
 		this._update();
 	}
 
-	private saveCustomSetting(){
+	private saveVisualforce(){
 		vscode.window.withProgress({
 			location: vscode.ProgressLocation.Notification,
 			title: 'Saving Visualforce Pages...',
 		}, async (progress) => {
 			let listRecordsToCreate = new Array<SetupEntityAccess>;
-			let listRecordsToDelete = new Array<SetupEntityAccess>;
+			let listRecordsToDelete = new Array<string>;
 			let recordsMap = new Map();
 			let listErrors = new Array();
 
 			for(let [key, value] of this.visualforceValues){
 				for(let [keyRecord, valueRecord] of this.visualforceValues.get(key)){
+					// @ts-ignore
 					let record: SetupEntityAccess = {};
 					record.Id = valueRecord.id;
 					record.ParentId = key;
@@ -1449,7 +1461,9 @@ export class PageView{
 				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
 
 				for(let x in listResultCreate){
+					// @ts-ignore
 					let result = listResultCreate[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToCreate[x];
 
 					if(result.success){
@@ -1522,6 +1536,7 @@ export class PageView{
 
 			for(let [key, value] of this.fieldValues){
 				for(let [keyField, valueField] of value){
+					// @ts-ignore
 					let record: FieldPermissions = {};
 					record.Id = valueField.id;
 					record.ParentId = valueField.permissionId;
@@ -1545,7 +1560,9 @@ export class PageView{
 					await dml.create(this.connection, 'FieldPermissions', listRecordsToCreate);
 				
 				for(let x in listResult){
+					// @ts-ignore
 					let result = listResult[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToCreate[x];
 					let key1 = recordInfo.ParentId;
 					let key2 = recordInfo.Field.toUpperCase();
@@ -1563,7 +1580,9 @@ export class PageView{
 					await dml.update(this.connection, 'FieldPermissions', listRecordsToUpdate);
 				
 				for(let x in listResult){
+					// @ts-ignore
 					let result = listResult[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToUpdate[x];
 					let key1 = recordInfo.ParentId;
 					let key2 = recordInfo.Field.toUpperCase();
@@ -1624,6 +1643,7 @@ export class PageView{
 			this.selectedPermissions.forEach(permission =>{
 				let valueObject = this.objectValues.get(permission.id).get(object);
 
+				// @ts-ignore
 				let record: Object = {};
 				record.Id = valueObject.id;
 				record.ParentId = valueObject.permissionId;
@@ -1658,7 +1678,9 @@ export class PageView{
 					await dml.create(this.connection, 'ObjectPermissions', listRecordsToCreate);
 				
 				for(let x in listResult){
+					// @ts-ignore
 					let result = listResult[x];
+					// @ts-ignore
 					let recordInfo = listRecordsToCreate[x];
 					
 					if(result.success){
@@ -1674,6 +1696,7 @@ export class PageView{
 					await dml.update(this.connection, 'ObjectPermissions', listRecordsToUpdate);
 				
 				for(let x in listResult){
+					// @ts-ignore
 					let result = listResult[x];
 					
 					if(!result.success){

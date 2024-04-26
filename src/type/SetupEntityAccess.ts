@@ -1,5 +1,5 @@
 export type SetupEntityAccess = {
-    Id: string;
+    Id: string | null;
     ParentId: string;
     SetupEntityId: string;
 };

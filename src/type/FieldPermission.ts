@@ -1,5 +1,5 @@
 export type FieldPermission = {
-    id: string;
+    id: string | null;
     field: string;
     object: string;
     name: string;
