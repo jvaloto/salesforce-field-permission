@@ -27,6 +27,16 @@ export function getContent(pageView: PageView){
         mapRecord: pageView.mapCustomSetting
     });
 
+    listOptions.push({
+        identifier: 'visualforce',
+        label: 'Visualforce Page',
+        labelPlural: 'Visualforce Pages',
+        listToSelect: pageView.listVisualforceToSelect,
+        listSelected: pageView.listSelectedVisualforce,
+        mapValues: pageView.visualforceValues,
+        mapRecord: pageView.mapVisualforce
+    });
+
     listOptions.forEach(option =>{
         toReturn += `
         <div class="slds-tabs_default__content tab-content slds-hide" data-id="${option.identifier}">
@@ -150,12 +160,12 @@ function createTable(pageView: PageView, option: any){
                         let itemData = option.mapRecord.get(selectedItem);
 
                         toReturn += `
-                            <tr class="slds-hint-parent" scope="row" data-${option.identifier}="${selectedItem}">
+                            <tr class="slds-hint-parent" scope="row" data-id="${selectedItem}">
                                 <td class="column-input-checkbox no-border-right">
                                     <button 
                                         type="button"
                                         class="icon-remove button-remove-${option.identifier}"
-                                        data-${option.identifier}="${selectedItem}"
+                                        data-remove-id="${selectedItem}"
                                     >
                                         x
                                     </button>

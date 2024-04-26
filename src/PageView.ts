@@ -1,30 +1,33 @@
 // @ts-nocheck
 import * as vscode from 'vscode';
-import { getConnection, getOrgs } from './connection';
 import jsforce from 'jsforce';
+import { getConnection, getOrgs } from './connection';
 import * as dml from './sf/sfDML';
-import { html } from './html';
+import { html } from './html/html';
 import * as sfApexClassDAO from './sf/sfApexClassDAO';
 import * as sfObjectDAO from './sf/sfObjectDAO';
 import * as sfPermissionSetDAO from './sf/sfPermissionSetDAO';
 import * as sfFieldDAO from './sf/sfFieldDAO';
 import * as sfCustomSettingDAO from './sf/sfCustomSettingDAO';
+import * as sfVisualforceDAO from './sf/sfVisualforceDAO';
 import { PermissionSet } from './type/PermissionSet';
 import { FieldPermission } from './type/FieldPermission';
 import { Object } from './type/Object';
 import { ApexClass } from './type/ApexClass';
 import { CustomSetting } from './type/CustomSetting';
-import { SingleOptionDML } from './type/SingleOptionDML';
-import { SingleOptionPermission } from './type/SingleOptionPermission';
+import { VisualforcePermission } from './type/VisualforcePermission';
 
 enum MESSAGE_TYPE { ERROR, INFO, SUCCESS };
 const LOCAL_STORAGE_ORG = 'defaultOrg';
 const LOCAL_STORAGE_PERMISSION_SET = 'defaultPermissionSet';
 const PROJECT_NAME = 'Salesforce Field Permission';
-const FOCUS_FIELD = 'field';
-const FOCUS_OBJECT = 'object';
-const FOCUS_APEX_CLASS = 'apex-class';
-const FOCUS_CUSTOM_SETTING = 'custom-setting';
+const TYPES = {
+	FIELD: 'field',
+	OBJECT: 'object',
+	APEX_CLASS: 'apex-class',
+	CUSTOM_SETTING: 'custom-setting',
+	VISUALFORCE: 'visualforce'
+};
 
 export class PageView{
 	public static currentPanel: PageView | undefined;
@@ -77,6 +80,12 @@ export class PageView{
 	public listCustomSettingToSelect: Array<any>;
 	public listSelectedCustomSetting: Array<string>;
 	public mapCustomSetting: Map<string, any>;
+	
+	public visualforceValues: Map<any, any>;
+	public listVisualforceBase: Array<string>;
+	public listVisualforceToSelect: Array<any>;
+	public listSelectedVisualforce: Array<string>;
+	public mapVisualforce: Map<string, any>;
 	
 	public static createOrShow(extensionUri: vscode.Uri){
 		const column = vscode.window.activeTextEditor
@@ -135,6 +144,12 @@ export class PageView{
 		this.listCustomSettingToSelect = new Array();
 		this.listSelectedCustomSetting = new Array();
 		this.mapCustomSetting = new Map();
+		
+		this.visualforceValues = new Map();
+		this.listVisualforceBase = new Array();
+		this.listVisualforceToSelect = new Array();
+		this.listSelectedVisualforce = new Array();
+		this.mapVisualforce = new Map();
 	}
 
 	private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -284,6 +299,8 @@ export class PageView{
 							this.addApexClass(message.text.id);
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.addCustomSetting(message.text.id);
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.addVisualforce(message.text.id);
 						}
 
 						break;
@@ -292,6 +309,8 @@ export class PageView{
 							this.removeApexClass(message.text.id);
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.removeCustomSetting(message.text.id);
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.removeVisualforce(message.text.id);
 						}
 
 						break;
@@ -300,6 +319,8 @@ export class PageView{
 							this.setApexClassValue(message.text.checked, message.text.permissionId, message.text.id);
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.setCustomSettingValue(message.text.checked, message.text.permissionId, message.text.id);
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.setVisualforceValue(message.text.checked, message.text.permissionId, message.text.id);
 						}
 
 						break;
@@ -308,6 +329,8 @@ export class PageView{
 							this.checkAllPermissionApexClass(message.text.checked, message.text.permissionId);
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.checkAllPermissionCustomSetting(message.text.checked, message.text.permissionId);
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.checkAllPermissionVisualforce(message.text.checked, message.text.permissionId);
 						}
 
 						break;
@@ -316,6 +339,8 @@ export class PageView{
 							this.saveApexClass();
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.saveCustomSetting();
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.saveVisualforce();
 						}
 
 						break;
@@ -324,6 +349,8 @@ export class PageView{
 							this.clearApexClass();
 						}else if(message.text.option === 'CUSTOM-SETTING'){
 							this.clearCustomSetting();
+						}else if(message.text.option === 'VISUALFORCE'){
+							this.clearVisualforce();
 						}
 
 						break;
@@ -410,6 +437,10 @@ export class PageView{
 				progress.report({ message: "Loading Custom Settings..." });
 				
 				await this.loadCustomSetting();
+
+				progress.report({ message: "Loading Visualforce Pages..." });
+				
+				await this.loadVisualforce();
 				
 				this.isConnected = true;
 			}else{
@@ -473,6 +504,17 @@ export class PageView{
 
 		this.listCustomSettingToSelect.forEach((customSetting: any) =>{
 			this.mapCustomSetting.set(customSetting.id, customSetting);
+		});
+	}
+
+	private async loadVisualforce(){
+		this.listVisualforceBase = 
+			await sfVisualforceDAO.getAll(this.connection);
+
+		this.listVisualforceToSelect = [...this.listVisualforceBase];
+
+		this.listVisualforceToSelect.forEach((visualforce: any) =>{
+			this.mapVisualforce.set(visualforce.id, visualforce);
 		});
 	}
 
@@ -582,7 +624,7 @@ export class PageView{
 			}
 
 			if(isSetFocus){
-				this.setTabFocus(FOCUS_FIELD);
+				this.setTabFocus(TYPES.FIELD);
 			}
 		}
 	}
@@ -822,6 +864,14 @@ export class PageView{
 				filterList(listResultCustomSettingPermission, listPermissionsToFilter)
 			);
 
+			// visualforce
+			listResultVisualforcePermission = 
+				await sfVisualforceDAO.getPermissions(this.connection, this.listSelectedVisualforce);
+
+			listPermissionsToFilter.push(
+				filterList(listResultVisualforcePermission, listPermissionsToFilter)
+			);
+
 			// default process
 			listPermissionsToFilter = listPermissionsToFilter.filter(e => e !== undefined);
 
@@ -842,13 +892,13 @@ export class PageView{
 			await this.loadCustomSettingPermissions(true);
 
 			if(this.selectedFields.length){
-				this.setTabFocus(FOCUS_FIELD);
+				this.setTabFocus(TYPES.FIELD);
 			}else if(this.listSelectedObjects.length){
-				this.setTabFocus(FOCUS_OBJECT);
+				this.setTabFocus(TYPES.OBJECT);
 			}else if(this.listSelectedApexClass.length){
-				this.setTabFocus(FOCUS_APEX_CLASS);
+				this.setTabFocus(TYPES.APEX_CLASS);
 			}else if(this.listSelectedCustomSetting.length){
-				this.setTabFocus(FOCUS_CUSTOM_SETTING);
+				this.setTabFocus(TYPES.CUSTOM_SETTING);
 			}
 
 			this._update();
@@ -897,7 +947,7 @@ export class PageView{
 		}
 		
 		if(isSetFocus){
-			this.setTabFocus(FOCUS_OBJECT, object);
+			this.setTabFocus(TYPES.OBJECT, object);
 		}
 	}
 
@@ -913,7 +963,7 @@ export class PageView{
 
 			this.listObjectToSelect.sort((a,b) => a > b ? 1 : a < b ? -1 : 0);
 
-			this.setTabFocus(FOCUS_OBJECT);
+			this.setTabFocus(TYPES.OBJECT);
 			
 			this._update();
 		}
@@ -958,7 +1008,7 @@ export class PageView{
 
 		this.listSelectedApexClass = this.listSelectedApexClass.filter(e => e !== apexClassId);
 
-		this.updateJSListSingleOption(this.listApexClassToSelect);
+		this.updateJSListSingleOption(TYPES.APEX_CLASS, this.listApexClassToSelect);
 	}
 
 	private async loadApexClassPermissions(checkPermission: boolean){
@@ -1123,7 +1173,7 @@ export class PageView{
 
 		this.listSelectedCustomSetting = this.listSelectedCustomSetting.filter(e => e !== customSettingId);
 
-		this.updateJSListSingleOption(this.listCustomSettingToSelect);
+		this.updateJSListSingleOption(TYPES.CUSTOM_SETTING, this.listCustomSettingToSelect);
 	}
 
 	private async loadCustomSettingPermissions(checkPermission: boolean){
@@ -1250,6 +1300,171 @@ export class PageView{
 			}
 
 			this.endDML('Custom Settings', listErrors);
+		});
+	}
+
+	private addVisualforce(id: string){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Adding Visualforce...',
+		}, async (progress) => {
+			this.createMessage(false);
+			
+			if(id){
+				if(!this.listSelectedVisualforce.includes(id)){
+					this.listSelectedVisualforce.push(id);
+					
+					this.listVisualforceToSelect = 
+						this.listVisualforceToSelect.filter(e => e.id !== id);
+					
+					await this.loadVisualforcePermissions(this.selectedPermissions.length > 0);
+
+					this._update();
+				}
+			}
+		});
+	}
+
+	private removeVisualforce(id: string){
+		if(this.selectedPermissions.length){
+			this.selectedPermissions.forEach(permission =>{
+				this.visualforceValues.get(permission.id).delete(id);
+			});
+		}
+
+		this.listVisualforceToSelect.push(this.mapVisualforce.get(id));
+
+		this.listVisualforceToSelect.sort((a,b) => a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+
+		this.listSelectedVisualforce = this.listSelectedVisualforce.filter(e => e !== id);
+
+		this.updateJSListSingleOption(TYPES.VISUALFORCE, this.listVisualforceToSelect);
+	}
+
+	private async loadVisualforcePermissions(checkPermission: boolean){
+		let listIdPermissionSetToFilter = this.getValueFromList(this.selectedPermissions, 'id');
+
+		let listVisualforcePermission = new Array<VisualforcePermission>;
+		
+		if(checkPermission){
+			listVisualforcePermission = 
+				await sfVisualforceDAO.getPermissions(this.connection, this.listSelectedVisualforce, listIdPermissionSetToFilter);
+		}
+
+		listVisualforcePermission.forEach(permission =>{
+			let key1 = permission.permissionId;
+			let key2 = permission.visualforceId;
+
+			if(!this.visualforceValues.has(key1)){
+				this.visualforceValues.set(key1, new Map());
+			}
+	
+			if(!this.visualforceValues.get(key1).has(key2)){
+				this.visualforceValues.get(key1).set(key2, {
+					id: permission.id, 
+					checked: true
+				});
+			}
+		});
+
+		listIdPermissionSetToFilter.forEach(permissionId =>{
+			let key1 = permissionId;
+
+			if(!this.visualforceValues.has(key1)){
+				this.visualforceValues.set(key1, new Map());
+			}
+				
+			this.listSelectedVisualforce.forEach(visualforceId =>{
+				let key2 = visualforceId;
+
+				if(!this.visualforceValues.get(key1).has(key2)){
+					this.visualforceValues.get(key1).set(key2, {
+						id: null, 
+						checked: false
+					});
+				}
+			});
+		});
+	}
+
+	private setVisualforceValue(checked: boolean, permissionId: string, id: string){
+		this.visualforceValues.get(permissionId).get(id).checked = checked;
+	}
+
+	private checkAllPermissionVisualforce(checked: boolean, permissionId: string){
+		this.listSelectedVisualforce.forEach(id =>{
+			this.visualforceValues.get(permissionId).get(id).checked = checked;
+		});
+	}
+
+	private clearVisualforce(){
+		this.listSelectedVisualforce = new Array();
+
+		this.listVisualforceToSelect = [...this.listVisualforceBase];
+
+		this.visualforceValues = new Map();
+
+		this._update();
+	}
+
+	private saveCustomSetting(){
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Saving Visualforce Pages...',
+		}, async (progress) => {
+			let listRecordsToCreate = new Array<VisualforcePermission>;
+			let listRecordsToDelete = new Array<VisualforcePermission>;
+			let recordsMap = new Map();
+			let listErrors = new Array();
+
+			for(let [key, value] of this.visualforceValues){
+				for(let [keyRecord, valueRecord] of this.visualforceValues.get(key)){
+					let record: VisualforcePermission = {};
+					record.Id = valueRecord.id;
+					record.ParentId = key;
+					record.SetupEntityId = keyRecord;
+					
+					if(!record.Id && valueRecord.checked){
+						listRecordsToCreate.push(record);
+					}else if(record.Id && !valueRecord.checked){
+						listRecordsToDelete.push(record.Id);
+					}
+
+					recordsMap.set(record.Id, record);
+				}
+			}
+
+			if(listRecordsToCreate.length){
+				let listResultCreate = await dml.create(this.connection, 'SetupEntityAccess', listRecordsToCreate);
+
+				for(let x in listResultCreate){
+					let result = listResultCreate[x];
+					let recordInfo = listRecordsToCreate[x];
+
+					if(result.success){
+						this.visualforceValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = result.id;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapVisualforce.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+			
+			if(listRecordsToDelete.length){
+				let listResultDelete = await dml.remove(this.connection, 'SetupEntityAccess', listRecordsToDelete);
+
+				for(let x in listResultDelete){
+					let result = listResultDelete[x];
+					let recordInfo = recordsMap.get(listRecordsToDelete[x]);
+
+					if(result.success){
+						this.visualforceValues.get(recordInfo.ParentId).get(recordInfo.SetupEntityId).id = null;
+					}else{
+						listErrors.push(this.formatErrorMessage(result.errors, this.mapVisualforce.get(recordInfo.SetupEntityId).label));
+					}
+				}
+			}
+
+			this.endDML('Visualforce Pages', listErrors);
 		});
 	}
 
@@ -1586,10 +1801,10 @@ export class PageView{
 			, text: this.listObjectToSelect
 		});
 
-		let tab = this.tabFocus || FOCUS_FIELD;
+		let tab = this.tabFocus || TYPES.FIELD;
 		let subTab = this.subTabFocus || '';
 
-		if(tab === FOCUS_OBJECT && subTab === '' && this.listSelectedObjects.length){
+		if(tab === TYPES.OBJECT && subTab === '' && this.listSelectedObjects.length){
 			subTab = this.listSelectedObjects[0];
 		}
 
@@ -1614,11 +1829,16 @@ export class PageView{
 		this.isInputFieldFocus = false;
 	}
 
-	private updateJSListSingleOption(listToUpdate: Array<any>){
+	private updateJSListSingleOption(option: string, listToUpdate: Array<any>){
 		this._panel.webview.postMessage({
 			command: 'JS-UPDATE-LIST-SINGLE-OPTION'
-			, text: listToUpdate
+			, text: {
+				option: option,
+				listOption: listToUpdate
+			}
 		});
+
+		this._update();
 	}
 }
 
