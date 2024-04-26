@@ -4,6 +4,7 @@
     let listOptions = new Array();
     listOptions.push('apex-class');
     listOptions.push('visualforce');
+    listOptions.push('custom-permission');
     listOptions.push('custom-setting');
     listOptions.push('custom-metadata');
 

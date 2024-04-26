@@ -3,6 +3,8 @@
 ## 0.6.0
 
 - Set permissions for custom metadata types
+- Set permissions for custom permissions
+- Set permissions for visualforce pages
 - Internal structure changes
 - Bug fixes
 

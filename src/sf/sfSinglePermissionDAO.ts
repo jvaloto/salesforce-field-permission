@@ -16,6 +16,7 @@ export async function getPermissions(connection: jsforce.Connection, type: strin
             SELECT Id
                 , ParentId
                 , SetupEntityId 
+                , SetupEntityType
             FROM SetupEntityAccess 
             WHERE SetupEntityType = '${type}' 
                 AND SetupEntityId IN ('${listSetupEntityId.join("','")}') 
