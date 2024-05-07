@@ -5,61 +5,9 @@ var columnColor: number;
 export function getContent(pageView: PageView){
     let toReturn = '';
 
-    var listOptions = new Array();
-
-    listOptions.push({
-        identifier: 'apex-class',
-        label: 'Apex Class',
-        labelPlural: 'Apex Class',
-        listToSelect: pageView.listApexClassToSelect,
-        listSelected: pageView.listSelectedApexClass,
-        mapValues: pageView.apexClassValues,
-        mapRecord: pageView.mapApexClass
-    });
-    
-    listOptions.push({
-        identifier: 'custom-setting',
-        label: 'Custom Setting',
-        labelPlural: 'Custom Settings',
-        listToSelect: pageView.listCustomSettingToSelect,
-        listSelected: pageView.listSelectedCustomSetting,
-        mapValues: pageView.customSettingValues,
-        mapRecord: pageView.mapCustomSetting
-    });
-
-    listOptions.push({
-        identifier: 'visualforce',
-        label: 'Visualforce Page',
-        labelPlural: 'Visualforce Pages',
-        listToSelect: pageView.listVisualforceToSelect,
-        listSelected: pageView.listSelectedVisualforce,
-        mapValues: pageView.visualforceValues,
-        mapRecord: pageView.mapVisualforce
-    });
-
-    listOptions.push({
-        identifier: 'custom-metadata',
-        label: 'Custom Metadata',
-        labelPlural: 'Custom Metadata',
-        listToSelect: pageView.listCustomMetadataToSelect,
-        listSelected: pageView.listSelectedCustomMetadata,
-        mapValues: pageView.customMetadataValues,
-        mapRecord: pageView.mapCustomMetadata
-    });
-
-    listOptions.push({
-        identifier: 'custom-permission',
-        label: 'Custom Permission',
-        labelPlural: 'Custom Permissions',
-        listToSelect: pageView.listCustomPermissionToSelect,
-        listSelected: pageView.listSelectedCustomPermission,
-        mapValues: pageView.customPermissionValues,
-        mapRecord: pageView.mapCustomPermission
-    });
-
-    listOptions.forEach(option =>{
+    pageView.listVariableSinglePermission.forEach(option =>{
         toReturn += `
-        <div class="slds-tabs_default__content tab-content slds-hide" data-id="${option.identifier}">
+        <div class="slds-tabs_default__content tab-content slds-hide" data-id="${option.type}">
             <article class="slds-card">
                 <div class="slds-card__body slds-card__body_inner">
                     <div class="slds-grid slds-gutters">
@@ -69,7 +17,7 @@ export function getContent(pageView: PageView){
                                     ${option.label}
                                 </label>
                                 <select 
-                                    id="input-${option.identifier}" 
+                                    id="input-${option.type}" 
                                     class="slds-input" 
                                 >`;
 
@@ -85,7 +33,7 @@ export function getContent(pageView: PageView){
                 </div>
                 <footer class="slds-card__footer">
                     <button 
-                        id="button-add-${option.identifier}" 
+                        id="button-add-${option.type}" 
                         type="button" 
                         class="slds-button slds-button_brand"
                         title="Add selected ${option.label.toLowerCase()} to set permissions"
@@ -110,10 +58,10 @@ function createTable(pageView: PageView, option: any){
 
     if(option.listSelected.length || pageView.selectedPermissions.length){
         toReturn += `
-        <div class="slds-tabs_default__content tab-content slds-show" data-id="${option.identifier}">
+        <div class="slds-tabs_default__content tab-content slds-show" data-id="${option.type}">
         <article class="slds-card">
             <div class="slds-card__body slds-card__body_inner">
-                <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered" id="table-${option.identifier}">
+                <table class="sfp-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered" id="table-${option.type}">
                     <thead>
                         <tr>
                             <th class="text-center width-100" colspan="2" scope="col">
@@ -161,7 +109,7 @@ function createTable(pageView: PageView, option: any){
                     <input 
                         data-permission="${permission.id}" 
                         type="checkbox"
-                        class="input-checkbox-all-${option.identifier}"
+                        class="input-checkbox-all-${option.type}"
                         ${permission.read ? 'checked' : ''}
                     />
                 </th>
@@ -173,7 +121,7 @@ function createTable(pageView: PageView, option: any){
         toReturn += `
             </tr>
             </thead>
-            <tbody id="tbody-${option.identifier}">
+            <tbody id="tbody-${option.type}">
         `;
                     
                 option.listSelected.forEach((selectedItem: any) =>{
@@ -184,7 +132,7 @@ function createTable(pageView: PageView, option: any){
                                 <td class="column-input-checkbox no-border-right">
                                     <button 
                                         type="button"
-                                        class="icon-remove button-remove-${option.identifier}"
+                                        class="icon-remove button-remove-${option.type}"
                                         data-remove-id="${selectedItem}"
                                     >
                                         x
@@ -198,7 +146,7 @@ function createTable(pageView: PageView, option: any){
                         resetColumnColor();
 
                         pageView.selectedPermissions.forEach(permission =>{
-                            let recordValue = option.mapValues.get(permission.id).get(selectedItem);
+                            let recordValue = option.values.get(permission.id).get(selectedItem);
 
                             toReturn += `
                                 <td class="center column-input-checkbox view-edit-${getColumnColor()}">
@@ -206,7 +154,7 @@ function createTable(pageView: PageView, option: any){
                                         data-id="${selectedItem}" 
                                         data-permission="${permission.id}" 
                                         type="checkbox" 
-                                        class="input-checkbox-${option.identifier}"
+                                        class="input-checkbox-${option.type}"
                                         ${recordValue.checked ? 'checked' : ''}
                                     />
                                 </td>
@@ -226,17 +174,17 @@ function createTable(pageView: PageView, option: any){
             </div>
             <footer class="slds-card__footer">
                 <button 
-                    id="button-clear-${option.identifier}" 
+                    id="button-clear-${option.type}" 
                     type="button" 
                     class="slds-button slds-button_neutral"
                 >
                     Clear
                 </button>
                 <button 
-                    id="button-save-${option.identifier}" 
+                    id="button-save-${option.type}" 
                     type="button" 
                     class="slds-button slds-button_brand"
-                    title="Save permissions for these ${option.labelPlural.toLowerCase()}"
+                    title="Save permissions for these ${option.pluralLabel.toLowerCase()}"
                 >
                     Save
                 </button>
