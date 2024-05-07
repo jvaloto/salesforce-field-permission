@@ -2,35 +2,49 @@ import jsforce from 'jsforce';
 import * as util from '../util';
 import * as sfSinglePermissionDAO from './sfSinglePermissionDAO';
 import { SinglePermission } from '../type/SinglePermission';
+import SinglePermissionInterface from '../interface/SinglePermissionInterface';
 
-export async function getAll(connection: jsforce.Connection){
-    let listToReturn = new Array<SinglePermission>;
+export default class sfCustomPermissionDAO implements SinglePermissionInterface{
 
-    let soql = `
-        SELECT Id
-            , DeveloperName
-            , NamespacePrefix
-        FROM CustomPermission 
-        ORDER BY DeveloperName ASC
-    `;
+    async getAll(connection: jsforce.Connection){
+        let listToReturn = new Array<SinglePermission>;
 
-    await connection.query(soql)
-    .then(result =>{
-        result.records.forEach((record: any) =>{
-            // @ts-ignore
-            let newRecord: SinglePermission = {};
-            newRecord.id = util.getId(record.Id);
-            newRecord.prefix = record.NamespacePrefix;
-            newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.DeveloperName;
-            newRecord.label = newRecord.name;
+        let soql = `
+            SELECT Id
+                , DeveloperName
+                , NamespacePrefix
+            FROM CustomPermission 
+            ORDER BY DeveloperName ASC
+        `;
 
-            listToReturn.push(newRecord);
+        await connection.query(soql)
+        .then(result =>{
+            result.records.forEach((record: any) =>{
+                // @ts-ignore
+                let newRecord: SinglePermission = {};
+                newRecord.id = util.getId(record.Id);
+                newRecord.prefix = record.NamespacePrefix;
+                newRecord.name = ( newRecord.prefix ? newRecord.prefix + '.' : '' ) + record.DeveloperName;
+                newRecord.label = newRecord.name;
+
+                listToReturn.push(newRecord);
+            });
         });
-    });
 
-    return listToReturn;
-}
+        return listToReturn;
+    }
 
-export async function getPermissions(connection: jsforce.Connection, listSetupEntityId: Array<string>, listIdPermissionSet?: Array<string>){
-    return await sfSinglePermissionDAO.getPermissions(connection, 'CustomPermission', listSetupEntityId, listIdPermissionSet);
+    async getPermissions(
+        connection: jsforce.Connection, 
+        listSetupEntityId: Array<string>, 
+        listIdPermissionSet?: Array<string>
+    ){
+        return await sfSinglePermissionDAO.getPermissions(
+            connection, 
+            'CustomPermission', 
+            listSetupEntityId, 
+            listIdPermissionSet
+        );
+    }
+
 }
