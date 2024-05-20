@@ -8,7 +8,7 @@ export function getContent(pageView: PageView){
         <div class="slds-card__body slds-card__body_inner">
             <div class="form-element">
                 <label class="slds-form-element__label">
-                    Org list
+                    Orgs
                 </label>
                 <div class="slds-form-element__control">
                     <div class="slds-select_container">
