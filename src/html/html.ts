@@ -122,11 +122,10 @@ export class html{
         let listTabs = new Array();
         listTabs.push({id: 'field', label: "Fields"});
         listTabs.push({id: 'object', label: "Objects"});
-        listTabs.push({id: 'apex-class', label: "Apex Class"});
-        listTabs.push({id: 'visualforce', label: "Visualforce Pages"});
-        listTabs.push({id: 'custom-permission', label: "Custom Permissions"});
-        listTabs.push({id: 'custom-metadata', label: "Custom Metadata"});
-        listTabs.push({id: 'custom-setting', label: "Custom Settings"});
+
+        this.pageView.listVariableSinglePermission.forEach(option =>{
+            listTabs.push({id: option.type, label: option.pluralLabel});
+        });
 
         let toReturn = `
             <div class="slds-tabs_default">

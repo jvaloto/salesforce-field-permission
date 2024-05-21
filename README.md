@@ -13,11 +13,11 @@ You can set permissions for these following types:
 - Objects
 - Apex Class
 - Visualforce Pages
+- Custom Permissions
 - Custom Metadata Types
 - Custom Settings
-- Custom Permissions
 
-You can set org and permission sets as default and when you open the page these settings are pre-filled and you can use less clicks (and time :wink:).
+You can set org and permission sets as default. If you use same permission sets for your project, you can set these permission sets as default and everytime that you open the page these permission sets are pre-loaded.
 
 ## Requirements
 

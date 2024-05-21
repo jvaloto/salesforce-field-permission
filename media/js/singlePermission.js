@@ -9,15 +9,13 @@
     listOptions.push('custom-metadata');
 
     listOptions.forEach(option =>{
-        let optionUpperCase = option.toUpperCase();
-
         document.querySelector(`#button-add-${option}`)?.addEventListener('click', () =>{
             let itemId = document.querySelector(`#input-${option}`).value;
 
             vscode.postMessage({
                 command: 'ADD-SINGLE-OPTION',
                 text: {
-                    option: optionUpperCase,
+                    option: option,
                     id: itemId
                 }
             });
@@ -30,7 +28,7 @@
                 vscode.postMessage({
                     command: 'REMOVE-SINGLE-OPTION',
                     text: {
-                        option: optionUpperCase,
+                        option: option,
                         id: itemId
                     }
                 });
@@ -46,7 +44,7 @@
                 vscode.postMessage({
                     command: 'CHANGE-VALUE-SINGLE-OPTION',
                     text: {
-                        option: optionUpperCase,
+                        option: option,
                         checked: checked, 
                         permissionId: permissionId,
                         id: itemId
@@ -67,7 +65,7 @@
                 vscode.postMessage({
                     command: 'CHANGE-VALUE-ALL-SINGLE-OPTION',
                     text: {
-                        option: optionUpperCase,
+                        option: option,
                         checked: checked, 
                         permissionId: permissionId
                     }
@@ -79,7 +77,7 @@
             vscode.postMessage({
                 command: 'SAVE-SINGLE-OPTION',
                 text:{
-                    option: optionUpperCase
+                    option: option
                 }
             });
         });
@@ -88,7 +86,7 @@
             vscode.postMessage({
                 command: 'CLEAR-SINGLE-OPTION',
                 text:{
-                    option: optionUpperCase
+                    option: option
                 }
             });
         });
